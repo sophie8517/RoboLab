@@ -32,7 +32,7 @@ class Planet:
 
     def __init__(self):
         """ Initializes the data structure """
-        self.target = None
+        self.paths = {}
 
     def add_path(self, start: Tuple[Tuple[int, int], Direction], target: Tuple[Tuple[int, int], Direction],
                  weight: int):
