@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Attention: Do not import the ev3dev.ev3 module in this file
+from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import List, Tuple, Dict, Union
 
@@ -13,6 +14,17 @@ class Direction(IntEnum):
     SOUTH = 180
     WEST = 270
 
+
+@dataclass
+class Point:
+    x: int
+    y: int
+
+
+@dataclass
+class Position:
+    point: Point
+    direction: Direction
 
 Weight = int
 """
