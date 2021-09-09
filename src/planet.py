@@ -147,7 +147,34 @@ class Planet:
                 unvisited.remove(k)
                 break
 
-        
+        neighbors = []
+        for val in self.paths[recent_node].keys():
+            neighbors.append(val[0])
+
+        neighbors_copy = neighbors
+
+        for nc in neighbors_copy:
+            for k in self.paths[recent_node].values():
+                if k[2] == -1:
+                    neighbors.remove(nc)
+                else:
+                    if not (nc in found_nodes):
+                        found_nodes.append(nc)
+
+        for n in neighbors:
+            part = 0
+            for k in self.paths[recent_node].values():
+                if k[0] == n:
+                    part = k[2]
+            new_length = part + distance_dict[recent_node]
+            old_length = distance_dict[n]
+            if new_length < old_length:
+                # update distance for node n
+                # update paths list for node n
+                distance_dict[n] = new_length
+                new_paths = paths[n] + [recent_node]
+                paths.update({n: new_paths})
+
 
 
 
