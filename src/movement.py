@@ -104,6 +104,10 @@ class Movement:
         print("Moved forward")
 
     def follow_line(self, speed: int = 80) -> FollowLineResult:
+        self.motor_right.position = 0
+        self.motor_left.position = 0
+        moto_pos_list = []
+
         print("Following line...")
         barrier_on_path = False
         while True:
@@ -113,6 +117,8 @@ class Movement:
             self.motor_left.speed_sp = speed + turn
             self.motor_right.command = "run-forever"
             self.motor_left.command = "run-forever"
+
+            moto_pos_list.append((self.motor_left.position, self.motor_right.position))
 
             if self.sensors.has_barrier():
                 # TODO better turning, might not find path if barrier in curve
@@ -125,6 +131,7 @@ class Movement:
                 self.motor_left.stop()
                 result = FollowLineResult(1, 1, barrier_on_path)
                 print(f"Followed line with result: {result}")
+                print(moto_pos_list)
                 return result
 
     def turn_and_scan(self) -> bool:
