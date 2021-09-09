@@ -105,7 +105,7 @@ class Planet:
         """
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        pass
+        return self.paths
 
     def shortest_path(self, start: Tuple[int, int], target: Tuple[int, int]) -> Union[None, List[Tuple[Tuple[int, int], Direction]]]:
         """
@@ -120,4 +120,18 @@ class Planet:
         """
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        pass
+        distance_dict = {}
+        unvisited = []
+        paths = {}
+        found_notes = []
+
+        for k in self.paths.keys():
+            distance_dict.update({k: float("inf")})
+            unvisited.append(k)
+            paths.update({k:[]})
+        distance_dict[start] = 0
+
+        
+
+
+
