@@ -214,7 +214,31 @@ class Planet:
         #start node has distance 0
         distance_dict[start] = 0
 
-        
+        while target in unvisited:
+            recent_node = start
+            distances = []
+
+            for node in unvisited:
+                distances.append(distance_dict[node])  #create a list of all distances
+
+            minimum_distance = min(distances)
+
+            if minimum_distance == infinity:
+                return None  #because this node is unreacheable
+            else:
+                for node in unvisited:
+                    if distance_dict[node] == minimum_distance:
+                        recent_node = node
+                        break
+                        #choose the node with the minimum distance as the next node to work with
+            unvisited.remove(recent_node)
+
+
+            
+
+
+
+
 
 
 
