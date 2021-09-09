@@ -1,5 +1,6 @@
 import time
 from dataclasses import dataclass
+import socket
 from typing import List
 
 from ev3dev import ev3
@@ -168,30 +169,81 @@ class Movement:
         print(f"Scanned ways, result: {result_list}")
         return result_list
 
+    def start_server(self):
+        print("Starting server")
+        self.motor_right.stop()
+        self.motor_left.stop()
+        PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
+
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.bind(('', PORT))
+            while True:
+                data: str = s.recv(1024).decode()
+                print(f"Got socket data: {data}")
+                if data == 's':
+                    self.motor_right.stop()
+                    self.motor_left.stop()
+                elif data.startswith('f#'):
+                    speed = int(data.split('#')[1])
+                    self.motor_right.speed_sp = speed
+                    self.motor_left.speed_sp = speed
+                    self.motor_right.command = "run-forever"
+                    self.motor_left.command = "run-forever"
+                elif data.startswith('b#'):
+                    speed = int(data.split('#')[1])
+                    self.motor_right.speed_sp = -speed
+                    self.motor_left.speed_sp = -speed
+                    self.motor_right.command = "run-forever"
+                    self.motor_left.command = "run-forever"
+                elif data.startswith('l#'):
+                    speed = int(data.split('#')[1])
+                    self.motor_right.speed_sp = speed
+                    self.motor_left.speed_sp = -speed
+                    self.motor_right.command = "run-forever"
+                    self.motor_left.command = "run-forever"
+                elif data.startswith('r#'):
+                    speed = int(data.split('#')[1])
+                    self.motor_right.speed_sp = -speed
+                    self.motor_left.speed_sp = speed
+                    self.motor_right.command = "run-forever"
+                    self.motor_left.command = "run-forever"
+                elif data == 'restart':
+                    self.motor_right.stop()
+                    self.motor_left.stop()
+                    return
+
+
     def main_loop(self):
-        # self.calibrate_black_white()
-        self.sensors.white = Color(r=286, g=451, b=289)
-        self.sensors.black = Color(r=31, g=69, b=22)
+        while True:
+            try:
+                # self.calibrate_black_white()
+                self.sensors.white = Color(r=286, g=451, b=289)
+                self.sensors.black = Color(r=31, g=69, b=22)
 
-        # self.calibrate_red_blue()
-        self.sensors.red = Color(r=142, g=57, b=23)
-        self.sensors.blue = Color(r=34, g=158, b=138)
+                # self.calibrate_red_blue()
+                self.sensors.red = Color(r=142, g=57, b=23)
+                self.sensors.blue = Color(r=34, g=158, b=138)
 
-        # self.communication.send_ready()
+                # self.communication.send_ready()
 
-        res_follow_line = self.follow_line()
+                res_follow_line = self.follow_line()
 
-        self.move_forward(4)
+                self.move_forward(4)
 
-        res_scan_ways = self.scan_ways()
+                res_scan_ways = self.scan_ways()
+            except KeyboardInterrupt:
+                self.start_server()
+            except Exception as e:
+                self.start_server()
 
-        # while True:
-        #    self.follow_line()
-        #   self.scan_ways()
-        # send ready message to mothership
+            # while True:
+            #    self.follow_line()
+            #   self.scan_ways()
+            # send ready message to mothership
 
-        # follow line
-        # find all paths on edge
-        # send position to mothership
-        #
-        print("done")
+            # follow line
+            # find all paths on edge
+            # send position to mothership
+            #
+            print("done")
+            self.start_server()
