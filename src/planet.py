@@ -123,6 +123,7 @@ class Planet:
         if not(start in self.paths.keys()) or not(target in self.paths.keys()):
             return None
 
+        '''
         distance_dict = {}
         unvisited = []
         paths = {}
@@ -144,9 +145,9 @@ class Planet:
                 distance_unvisited.append(k)
 
             minimum_distance = min(distance_unvisited)
-            
 
-            for k in distance_dict.keys():
+
+            for k in unvisited:
                 if distance_dict[k] == minimum_distance:
                     recent_node = k
                     unvisited.remove(k)
@@ -154,7 +155,8 @@ class Planet:
 
             neighbors = []
             for val in self.paths[recent_node].keys():
-                neighbors.append(val[0])
+                elem = self.paths[recent_node][val][0]
+                neighbors.append(elem)
 
             neighbors_copy = neighbors
 
@@ -193,10 +195,26 @@ class Planet:
             output.append(element)
 
         return output
+        '''
 
+        distance_dict = {} # lists all nodes with their distance to start node
+        predecessors = {} # maps a list of predecessors to a node {this node :[start, ..., this node}
+        unvisited = []
+        infinity = float("inf")
 
+        #add all nodes to unvisited
+        #initialize all distances with infinity
+        #initialize predecessors as empty list
 
+        for k in list(self.paths.keys()):
+            unvisited.append(k)
+            distance_dict.update({k: infinity})
+            predecessors.update({k: []})
 
+        #start node has distance 0
+        distance_dict[start] = 0
+
+        
 
 
 
