@@ -2,19 +2,11 @@ import time
 from dataclasses import dataclass
 from typing import List
 
-import ev3dev.ev3 as ev3
+from ev3dev import ev3
 
+from communication import Communication
 from planet import Direction
-
-
-@dataclass
-class Color:
-    r: int
-    g: int
-    b: int
-
-    def brightness(self) -> int:
-        return int((self.r + self.g + self.b) / 3)
+from sensors import Sensors, SquareColor, Color
 
 
 @dataclass
@@ -25,13 +17,8 @@ class FollowLineResult:
 
 
 class Movement:
-    def __init__(self):
-        self.color_sensor = ev3.ColorSensor()
-        self.color_sensor.mode = 'RGB-RAW'
-
-        self.ultrasonic_sensor = ev3.UltrasonicSensor()
-        self.ultrasonic_sensor.mode = 'US-DIST-CM'
-        self.ultrasonic_sensor.mode = 'US-SI-CM'
+    def __init__(self, communication: Communication):
+        self.communication = communication
 
         self.motor_right = ev3.LargeMotor("outD")
         self.motor_right.reset()
@@ -40,32 +27,22 @@ class Movement:
         self.motor_left.reset()
         self.motor_left.stop_action = "brake"
 
-        self.black = Color
-        self.white = Color
+        self.sound = ev3.Sound()
 
-        self.blue = Color
-        self.red = Color
-
-    @property
-    def black_white_diff(self) -> float:
-        return (self.white.brightness() - self.black.brightness()) / 2
-
-    def get_color(self) -> Color:
-        current_color = self.color_sensor.bin_data("hhh")
-        return Color(current_color[0], current_color[1], current_color[2])
+        self.sensors = Sensors()
 
     def calibrate_red_blue(self) -> None:
         input("Set me on a blue square and press enter")
-        self.blue = self.get_color()
+        self.sensors.blue = self.sensors.get_color()
         input("Set me on a red square and press enter")
-        self.red = self.get_color()
+        self.sensors.red = self.sensors.get_color()
 
-        print(f"self.red = {self.red}")
-        print(f"self.blue = {self.blue}")
+        print(f"self.sensors.red = {self.sensors.red}")
+        print(f"self.sensors.blue = {self.sensors.blue}")
 
     def calibrate_black_white(self) -> None:
-        self.white = self.get_color()
-        self.black = self.get_color()
+        self.sensors.white = self.sensors.get_color()
+        self.sensors.black = self.sensors.get_color()
 
         self.motor_right.speed_sp = -30
         self.motor_left.speed_sp = 30
@@ -73,12 +50,12 @@ class Movement:
         self.motor_left.command = "run-forever"
 
         for i in range(100):
-            current_color = self.get_color()
-            if current_color.brightness() < self.black.brightness():
-                self.black = current_color
+            current_color = self.sensors.get_color()
+            if current_color.brightness() < self.sensors.black.brightness():
+                self.sensors.black = current_color
 
-            if current_color.brightness() > self.white.brightness():
-                self.white = current_color
+            if current_color.brightness() > self.sensors.white.brightness():
+                self.sensors.white = current_color
 
             time.sleep(0.1)
 
@@ -91,32 +68,122 @@ class Movement:
         self.motor_right.stop()
         self.motor_left.stop()
 
-        print(f"self.white = {self.white}")
-        print(f"self.black = {self.black}")
+        print(f"self.sensors.white = {self.sensors.white}")
+        print(f"self.sensors.black = {self.sensors.black}")
 
-    def follow_line(self, speed: int = 80):
+    def turn(self, angle: int):
+        print(f"Tun {angle} degrees...")
+        turn_left = angle < 0
+        # 19 sec -> 360 degree
+        if turn_left:
+            self.motor_right.speed_sp = 50
+            self.motor_left.speed_sp = -50
+        else:  # turn right
+            self.motor_right.speed_sp = -50
+            self.motor_left.speed_sp = 50
+        self.motor_right.command = "run-forever"
+        self.motor_left.command = "run-forever"
+        time.sleep((19 / 360) * abs(angle))
+        self.motor_right.stop()
+        self.motor_left.stop()
+        print("Turned")
+
+    def move_forward(self, time_sec: int, speed: int = 50):
+        print(f"Move forward: time_sec:{time_sec}, speed={speed}...")
+        self.motor_right.speed_sp = speed
+        self.motor_left.speed_sp = speed
+
+        self.motor_right.command = "run-forever"
+        self.motor_left.command = "run-forever"
+
+        time.sleep(time_sec)
+
+        self.motor_right.stop()
+        self.motor_left.stop()
+        print("Moved forward")
+
+    def follow_line(self, speed: int = 80) -> FollowLineResult:
+        print("Following line...")
+        barrier_on_path = False
         while True:
-            current_brightness = self.get_color().brightness()
-            turn = 0.2 * (current_brightness - self.black_white_diff)
+            current_brightness = self.sensors.get_color().brightness()
+            turn = 0.2 * (current_brightness - self.sensors.black_white_diff)
             self.motor_right.speed_sp = speed - turn
             self.motor_left.speed_sp = speed + turn
             self.motor_right.command = "run-forever"
             self.motor_left.command = "run-forever"
 
-        # return FollowLineResult(1, 1, False)
+            if self.sensors.has_barrier():
+                # TODO better turning, might not find path if barrier in curve
+                barrier_on_path = True
+                self.sound.beep()
+                self.turn(170)
+
+            if self.sensors.get_square_color() != SquareColor.NOT_ON_SQUARE:
+                self.motor_right.stop()
+                self.motor_left.stop()
+                result = FollowLineResult(1, 1, barrier_on_path)
+                print(f"Followed line with result: {result}")
+                return result
+
+    def turn_and_scan(self) -> bool:
+        print("Turn and scan...")
+        angle = 85
+        total_sleep = (19 / 360) * angle
+        has_path = False
+
+        self.motor_right.speed_sp = -50
+        self.motor_left.speed_sp = 50
+        self.motor_right.command = "run-forever"
+        self.motor_left.command = "run-forever"
+
+        for i in range(100):
+            time.sleep(total_sleep / 100)
+            if abs(self.sensors.get_color().brightness() - self.sensors.black.brightness()) < 50:
+                has_path = True
+
+        self.motor_right.stop()
+        self.motor_left.stop()
+        time.sleep(0.5)
+        print(f"Turned and scanned. has_path: {has_path}")
+        return has_path
 
     def scan_ways(self) -> List[Direction]:
-        # TODO
-        pass
+        print("Scanning ways...")
+        self.turn(-45)
+        result_list: List[Direction] = []
+
+        if self.turn_and_scan():
+            result_list.append(Direction.NORTH)
+
+        if self.turn_and_scan():
+            result_list.append(Direction.EAST)
+
+        if self.turn_and_scan():
+            result_list.append(Direction.SOUTH)
+
+        if self.turn_and_scan():
+            result_list.append(Direction.WEST)
+
+        print(f"Scanned ways, result: {result_list}")
+        return result_list
 
     def main_loop(self):
         # self.calibrate_black_white()
-        self.white = Color(r=279, g=450, b=273)
-        self.black = Color(r=23, g=57, b=21)
-
-        self.follow_line()
+        self.sensors.white = Color(r=286, g=451, b=289)
+        self.sensors.black = Color(r=31, g=69, b=22)
 
         # self.calibrate_red_blue()
+        self.sensors.red = Color(r=142, g=57, b=23)
+        self.sensors.blue = Color(r=34, g=158, b=138)
+
+        # self.communication.send_ready()
+
+        res_follow_line = self.follow_line()
+
+        self.move_forward(4)
+
+        res_scan_ways = self.scan_ways()
 
         # while True:
         #    self.follow_line()
