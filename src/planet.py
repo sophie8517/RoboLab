@@ -144,6 +144,7 @@ class Planet:
                 distance_unvisited.append(k)
 
             minimum_distance = min(distance_unvisited)
+            
 
             for k in distance_dict.keys():
                 if distance_dict[k] == minimum_distance:
@@ -176,10 +177,25 @@ class Planet:
                     # update distance for node n
                     # update paths list for node n
                     distance_dict[n] = new_length
-                    new_paths = paths[n] + [recent_node]
+                    new_paths = paths[recent_node] + [recent_node]
                     paths.update({n: new_paths})
 
-        
+        # write output
+        node_list = paths[target]
+        output = []
+        for node in len(node_list):
+            dire = Direction.WEST
+            for key in self.paths[node_list[node]].keys():
+                if self.paths[node_list[node]][key][0] == node_list[node + 1]:
+                    dire = key
+                    break
+            element = (node,dire)
+            output.append(element)
+
+        return output
+
+
+
 
 
 
