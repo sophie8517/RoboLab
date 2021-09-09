@@ -251,7 +251,31 @@ class Planet:
                         distance_dict[k[0]] = new_weight
                         predecessors[k[0]] = predecessors[recent_node] + [recent_node]
 
+        #write output
 
+        node_list = predecessors[target]  # predecessors of the target node
+        output = []
+        for num in range(len(node_list)):
+            if num == len(node_list) - 1:
+                last = node_list[len(node_list) - 1]  # node before target node
+                direc = Direction.NORTH
+                for kye in list(self.paths[last].keys()):
+                    if self.paths[last][kye][0] == target:
+                        direc = kye
+                        break
+                last_elem = (last, direc)
+                output.append(last_elem)
+
+            else:
+                dire = Direction.WEST
+                for key in self.paths[node_list[num]].keys():
+                    if self.paths[node_list[num]][key][0] == node_list[num + 1]:
+                        dire = key
+                        break
+                element = (node_list[num], dire)
+                output.append(element)
+
+        return output
 
 
 
