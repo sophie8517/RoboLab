@@ -6,7 +6,6 @@ import uuid
 
 from communication import Communication
 
-
 class TestRoboLabCommunication(unittest.TestCase):
     @unittest.mock.patch('logging.Logger')
     def setUp(self, mock_logger):
