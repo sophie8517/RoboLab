@@ -123,13 +123,29 @@ class Planet:
         distance_dict = {}
         unvisited = []
         paths = {}
-        found_notes = []
+        #{node:[node after, ... , recently added]}
+        found_nodes = [start]
 
         for k in self.paths.keys():
             distance_dict.update({k: float("inf")})
             unvisited.append(k)
             paths.update({k:[]})
         distance_dict[start] = 0
+
+        recent_node = start
+        #---------------------------------------
+
+        distance_unvisited = []
+        for k in unvisited:
+            distance_unvisited.append(k)
+
+        minimum_distance = min(distance_unvisited)
+
+        for k in distance_dict.keys():
+            if distance_dict[k] == minimum_distance:
+                recent_node = k
+                unvisited.remove(k)
+                break
 
         
 
