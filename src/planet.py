@@ -234,7 +234,22 @@ class Planet:
             unvisited.remove(recent_node)
 
 
-            
+            for k in list(self.paths[recent_node].values()):
+                if k[0] in unvisited:  # k[0] is target node, the k[0]'s are the neighbors of the recent node
+
+                    old_weight = distance_dict[k[0]]
+                    new_weight = 0
+                    part = 0
+                    for ky in self.paths[recent_node].values():
+                        if ky[0] == k[0]:
+                            part = k[2]
+                    new_weight = distance_dict[recent_node] + part  #calculates the distance if you 'go over'
+                                                                    # the recent node
+
+                    if new_weight < old_weight:
+                        # update predecessors and distance_dict
+                        distance_dict[k[0]] = new_weight
+                        predecessors[k[0]] = predecessors[recent_node] + [recent_node]
 
 
 
