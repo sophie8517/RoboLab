@@ -60,7 +60,29 @@ class Planet:
         """
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        pass
+        #add start to target
+
+        start_key = start[0]
+        start_value = {start[1]: (target[0], target[1], weight)}
+
+        if start_key in self.paths.keys():
+            self.paths[start_key].update(start_value)
+        else:
+            self.paths.update({start_key:start_value})
+
+        #add path from target to start
+
+        target_key = target[0]
+        target_value = {target[1]:(start[0], start[1], weight)}
+
+        if target_key in self.paths.keys():
+            self.paths[target_key].update(target_value)
+        else:
+            self.paths.update({target_key:target_value})
+
+
+
+
 
     def get_paths(self) -> Dict[Tuple[int, int], Dict[Direction, Tuple[Tuple[int, int], Direction, Weight]]]:
         """
