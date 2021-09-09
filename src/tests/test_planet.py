@@ -49,18 +49,54 @@ class TestRoboLabPlanet(unittest.TestCase):
         # Initialize your data structure here
         self.planet = Planet()
         # self.planet.add_path(...)
+        self.planet.add_path(((0, 0), Direction.NORTH), ((0, 1), Direction.SOUTH), 1)
+        self.planet.add_path(((0,0),Direction.EAST), ((1,0), Direction.WEST), 2)
+        self.planet.add_path(((0,0), Direction.WEST), ((0,1), Direction.WEST), 3)
+        self.planet.add_path(((0,1), Direction.NORTH), ((0,2), Direction.SOUTH), 17)
+        self.planet.add_path(((1,0), Direction.NORTH), ((2,2), Direction.SOUTH), 3)
+        self.planet.add_path(((2,2), Direction.WEST), ((0,2), Direction.EAST), 4)
+        self.planet.add_path(((0,2), Direction.NORTH), ((0,3), Direction.SOUTH), 2)
+        self.planet.add_path(((2,2), Direction.NORTH),((0,3), Direction.EAST), 18)
+        self.planet.add_path(((0,3), Direction.NORTH), ((0,3), Direction.WEST), 4)
 
     def test_integrity(self):
         """
         This test should check that the dictionary returned by "planet.get_paths()" matches the expected structure
         """
-        self.fail('implement me!')
+        dict = {
+            (0,0):
+                {Direction.NORTH: ((0,1), Direction.SOUTH,1),
+                 Direction.EAST: ((1,0), Direction.WEST, 2),
+                 Direction.WEST: ((0,1), Direction.WEST,3)},
+            (0,1):
+                {Direction.SOUTH: ((0,0), Direction.NORTH, 1),
+                 Direction.WEST: ((0,0), Direction.WEST, 3),
+                 Direction.NORTH:((0,2), Direction.SOUTH,17)},
+            (0,2):
+                {Direction.SOUTH: ((0,1), Direction.NORTH, 17),
+                 Direction.NORTH: ((0,3), Direction.SOUTH,2),
+                 Direction.EAST: ((2,2), Direction.WEST,4)},
+            (0,3):
+                {Direction.SOUTH: ((0,2), Direction.NORTH, 2),
+                 Direction.NORTH: ((0,3), Direction.WEST, 4),
+                 Direction.WEST: ((0,3), Direction.NORTH, 4),
+                 Direction.EAST: ((2,2), Direction.NORTH, 18)},
+            (1,0):
+                {Direction.WEST: ((0,0), Direction.EAST, 2),
+                 Direction.NORTH: ((2,2), Direction.SOUTH, 3)},
+            (2,2):
+                {Direction.WEST: ((0,2), Direction.EAST, 4),
+                 Direction.NORTH: ((0,3), Direction.EAST, 18),
+                 Direction.SOUTH: ((1,0), Direction.NORTH, 3)}
+        }
+
+        self.assertDictEqual(self.planet.get_paths(),dict)
 
     def test_empty_planet(self):
         """
         This test should check that an empty planet really is empty
         """
-        self.fail('implement me!')
+        self.assertDictEqual(self.planet.get_paths(),{})
 
     def test_target(self):
         """
@@ -68,13 +104,14 @@ class TestRoboLabPlanet(unittest.TestCase):
 
         Requirement: Minimum distance is three nodes (two paths in list returned)
         """
-        self.fail('implement me!')
+        result = [((0,0), Direction.EAST), ((1,0), Direction.NORTH), ((2,2), Direction.WEST)]
+        self.assertListEqual(self.planet.shortest_path((0,0),(0,2)), result)
 
     def test_target_not_reachable(self):
         """
         This test should check that a target outside the map or at an unexplored node is not reachable
         """
-        self.fail('implement me!')
+        self.assertIsNone(self.planet.shortest_path((0,0), (0,4)))
 
     def test_same_length(self):
         """
