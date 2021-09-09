@@ -58,6 +58,10 @@ class Communication:
         self.client.tls_set(tls_version=ssl.PROTOCOL_TLS)
         self.client.on_message = self.safe_on_message_handler
         # Add your client setup here
+        self.client.username_pw_set('229', password='o4CzKPpAgl') # Your group credentials
+        self.client.connect('mothership.inf.tu-dresden.de', port=8883)
+        self.client.subscribe('explorer/229', qos=1) # Subscribe to topic explorer/xxx
+        self.client.loop_start()
 
         self.logger = logger
 
@@ -75,6 +79,8 @@ class Communication:
 
         # YOUR CODE FOLLOWS (remove pass, please!)
         # TODO
+        # check msg content if type is "planet". If so call send ready
+
 
     # DO NOT EDIT THE METHOD SIGNATURE
     #
@@ -93,6 +99,8 @@ class Communication:
         # YOUR CODE FOLLOWS (remove pass, please!)
         self.client.publish(topic, message)
         # TODO?
+
+
 
     # DO NOT EDIT THE METHOD SIGNATURE OR BODY
     #
@@ -119,11 +127,28 @@ class Communication:
 
     def send_testplanet(self, planet_name: str) -> None:
         # TODO
-        pass
+        message = {
+            "from": "client",
+            "type": "testplanet",
+            "payload": {
+                "planetName": planet_name
+            }
+        }
+        message_to_send = json.dumps(message)
+        self.send_message("explorer/229", message_to_send)
 
     def send_ready(self) -> SendReadyResponse:
-        # TODO
-        pass
+        ready_msg = {
+            "from": "client",
+            "type": "ready"
+        }
+
+
+
+
+        ready_msg = json.dumps(ready_msg)
+        self.send_message()
+
 
     def send_path(self, start_position: Position, end_position: Position, path_blocked: bool) -> SendPathResponse:
         # TODO
