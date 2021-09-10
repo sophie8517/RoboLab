@@ -1,4 +1,6 @@
+import json
 import time
+import traceback
 from copy import copy
 from dataclasses import dataclass
 import socket
@@ -148,9 +150,11 @@ class Movement:
             if self.sensors.get_square_color() != SquareColor.NOT_ON_SQUARE:
                 self.motor_right.stop()
                 self.motor_left.stop()
-                result = FollowLineResult(1, 1, barrier_on_path)
+                result = FollowLineResult(1, 1, Direction.NORTH, barrier_on_path)
                 print(f"Followed line with result: {result}")
-                print(moto_pos_list)
+                filename = input("Filename?\n")
+                with open(f"/home/robot/{filename}.json", "w") as file:
+                    file.write(json.dumps(moto_pos_list))
                 return result
 
     def turn_and_scan(self) -> bool:
@@ -204,6 +208,7 @@ class Movement:
 
         while True:
             follow_line_result = self.follow_line(speed=80)
+            return
             continue
 
             if not follow_line_result.barrier:
@@ -229,6 +234,8 @@ class Movement:
                 print("done")
                 self.debug_server.start()
             except KeyboardInterrupt:
+                print("Keyyyyyyyyyyyy")
                 self.debug_server.start()
             except Exception as e:
+                traceback.print_exc()
                 self.debug_server.start()
