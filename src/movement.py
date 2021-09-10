@@ -85,11 +85,11 @@ class Movement:
             self.calibrate_red_blue()
             self.calibrate_black_white()
         else:
-            self.sensors.red = Color(r=142, g=57, b=23)
-            self.sensors.blue = Color(r=34, g=158, b=138)
+            self.sensors.red = Color(r=165, g=68, b=26)
+            self.sensors.blue = Color(r=33, g=160, b=137)
 
-            self.sensors.white = Color(r=286, g=451, b=289)
-            self.sensors.black = Color(r=31, g=69, b=22)
+            self.sensors.white = Color(r=295, g=468, b=287)
+            self.sensors.black = Color(r=28, g=68, b=22)
 
     def turn(self, angle: int) -> None:
         print(f"Tun {angle} degrees...")
@@ -131,7 +131,7 @@ class Movement:
         barrier_on_path = False
         while True:
             current_brightness = self.sensors.get_color().brightness()
-            turn = 0.2 * (current_brightness - self.sensors.black_white_diff)
+            turn = 0.5 * (current_brightness - self.sensors.black_white_diff)
             self.motor_right.speed_sp = speed - turn
             self.motor_left.speed_sp = speed + turn
             self.motor_right.command = "run-forever"
@@ -198,12 +198,13 @@ class Movement:
     def main_loop(self):
         self.calibrate_colors()
 
-        ready_response = self.communication.send_ready()
-        self.planet.name = ready_response.planet_name
-        self.position = ready_response.start_position
+        #ready_response = self.communication.send_ready()
+        #self.planet.name = ready_response.planet_name
+        #self.position = ready_response.start_position
 
         while True:
-            follow_line_result = self.follow_line()
+            follow_line_result = self.follow_line(speed=80)
+            continue
 
             if not follow_line_result.barrier:
                 old_position = copy(self.position)

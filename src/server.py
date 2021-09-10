@@ -6,7 +6,7 @@ import ev3dev.core
 class DebugServer:
     def __init__(self, motor_left: ev3dev.core.LargeMotor, motor_right: ev3dev.core.LargeMotor):
         self.motor_left = motor_left
-        self.motor_right = motor_left
+        self.motor_right = motor_right
 
     def start(self):
         print("Starting server")
