@@ -8,6 +8,7 @@ import queue
 import ssl
 import time
 import uuid
+from copy import copy
 from dataclasses import dataclass
 from typing import Any, Optional, List
 
@@ -70,7 +71,7 @@ class Communication:
         self.client.loop_start()
 
         self.logger = logger
-        self.que = queue.Queue()
+        self.message_list = []
 
     # DO NOT EDIT THE METHOD SIGNATURE
     def on_message(self, client: mqtt.Client, data, message):
@@ -86,8 +87,13 @@ class Communication:
         # YOUR CODE FOLLOWS (remove pass, please!)
 
         if payload["from"] != "server":
+            print("Skip, not from server")
             return
-        self.que.put(payload)
+
+        if not payload["type"]:
+            print("Error, this message has no type")
+            return
+        self.message_list.append(payload)
 
     # DO NOT EDIT THE METHOD SIGNATURE
     #
@@ -132,19 +138,29 @@ class Communication:
             raise Exception("No planet name")
         return f"planet/{self.planet}/{self.group}"
 
+    def get_first_response_by_type(self, message_type: str) -> dict:
+        for message in self.message_list:
+            if message["type"] != message_type:
+                continue
+            my_message = copy(message)
+            self.message_list.remove(my_message)
+            return my_message
+        print("No message found")
+        return {}
+
+    def get_all_responses_by_type(self, message_type: str) -> list[dict]:
+        my_messages = []
+        for message in self.message_list:
+            if message["type"] != message_type:
+                continue
+            my_messages.append(copy(message))
+            self.message_list.remove(message)
+
+        return my_messages
+
     ######################
     # Send to mothership #
     ######################
-
-    def send_testplanet(self, planet_name: str) -> None:
-        msg = {
-            "from": "client",
-            "type": "testplanet",
-            "payload": {
-                "planetName": planet_name
-            }
-        }
-        self.send_message(self.topic, msg)
 
     def send_ready(self) -> SendReadyResponse:
         message = {
@@ -155,9 +171,7 @@ class Communication:
 
         time.sleep(1)
 
-        response = self.que.get(timeout=10)
-        if response["type"] != "planet":
-            raise Exception("Invalid mothership response")
+        response = self.get_first_response_by_type("planet")
 
         payload = response["payload"]
 
@@ -188,10 +202,7 @@ class Communication:
 
         time.sleep(1)
 
-        response = self.que.get(timeout=10)
-
-        if response["type"] != "path":
-            raise Exception("Invalid mothership response")
+        response = self.get_first_response_by_type("path")
 
         payload = response["payload"]
 
@@ -219,10 +230,7 @@ class Communication:
 
         time.sleep(1)
 
-        response = self.que.get(timeout=10)
-
-        if response["type"] != "pathSelect":
-            raise Exception("Invalid mothership response")
+        response = self.get_first_response_by_type("pathSelect")
 
         return Direction(response["payload"]["startDirection"])
 
@@ -238,11 +246,7 @@ class Communication:
 
         time.sleep(1)
 
-        response = self.que.get(timeout=10)
-        self.que.
-
-        if response["type"] != "done":
-            raise Exception("Invalid mothership response")
+        response = self.get_first_response_by_type("done")
 
     def send_exploration_completed(self, text: str) -> None:
         message = {
@@ -256,20 +260,17 @@ class Communication:
 
         time.sleep(1)
 
-        response = self.que.get(timeout=10)
-
-        if response["type"] != "done":
-            raise Exception("Invalid mothership response")
+        response = self.get_first_response_by_type("done")
 
     ###########################
     # Receive from mothership #
     ###########################
 
     def receive_path_unveiled(self) -> List[PathUnveiledResponse]:
-        paths_messages = self.filter_messages_on_type("pathUnveiled")
+        path_unveiled_messages = self.get_all_responses_by_type("pathUnveiled")
         paths_unveiled = []
-        for msg in paths_messages:
-            payload = msg["payload"]
+        for message in path_unveiled_messages:
+            payload = message["payload"]
             path = PathUnveiledResponse(Position(Point(payload["startX"],
                                                        payload["startY"]),
                                                  payload["startDirection"]),
@@ -283,22 +284,11 @@ class Communication:
 
     def receive_target(self) -> Optional[Point]:
 
-        target = self.filter_messages_on_type("target")[0]
-        if target:
-            point = Point(target["payload"]["targetX"], target["payload"]["targetY"])
-            return point
-        return None
+        target = self.get_first_response_by_type("target")
+        if not target:
+            return None
 
-    #########################
-    # helper method         #
-    #########################
-    def filter_messages_on_type(self, type: str) -> [dict]:
-        result = []
-        while self.que:
-            msg = self.que.get()
-            if msg["type"] is type:
-                result.append(msg)
-        return result
+        return Point(target["payload"]["targetX"], target["payload"]["targetY"])
 
 
 if __name__ == '__main__':
