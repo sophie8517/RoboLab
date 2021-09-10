@@ -1,4 +1,5 @@
 import time
+from copy import copy
 from dataclasses import dataclass
 import socket
 from typing import List
@@ -6,14 +7,16 @@ from typing import List
 from ev3dev import ev3
 
 from communication import Communication
-from planet import Direction
+from planet import Direction, Position, Planet
 from sensors import Sensors, SquareColor, Color
+from server import DebugServer
 
 
 @dataclass
 class FollowLineResult:
     dx: int
     dy: int
+    relative_direction: Direction
     barrier: bool
 
 
@@ -27,10 +30,13 @@ class Movement:
         self.motor_left = ev3.LargeMotor("outA")
         self.motor_left.reset()
         self.motor_left.stop_action = "brake"
-
         self.sound = ev3.Sound()
-
         self.sensors = Sensors()
+
+        self.debug_server = DebugServer(self.motor_left, self.motor_right)
+        self.planet = Planet()
+
+        self.position = Position
 
     def calibrate_red_blue(self) -> None:
         input("Set me on a blue square and press enter")
@@ -42,6 +48,7 @@ class Movement:
         print(f"self.sensors.blue = {self.sensors.blue}")
 
     def calibrate_black_white(self) -> None:
+        input("Set next to a path and press enter")
         self.sensors.white = self.sensors.get_color()
         self.sensors.black = self.sensors.get_color()
 
@@ -72,7 +79,19 @@ class Movement:
         print(f"self.sensors.white = {self.sensors.white}")
         print(f"self.sensors.black = {self.sensors.black}")
 
-    def turn(self, angle: int):
+    def calibrate_colors(self) -> None:
+        calibrate_response = input("Calibrate colors? [y/N]")
+        if calibrate_response.lower().startswith("y"):
+            self.calibrate_red_blue()
+            self.calibrate_black_white()
+        else:
+            self.sensors.red = Color(r=142, g=57, b=23)
+            self.sensors.blue = Color(r=34, g=158, b=138)
+
+            self.sensors.white = Color(r=286, g=451, b=289)
+            self.sensors.black = Color(r=31, g=69, b=22)
+
+    def turn(self, angle: int) -> None:
         print(f"Tun {angle} degrees...")
         turn_left = angle < 0
         # 19 sec -> 360 degree
@@ -89,7 +108,7 @@ class Movement:
         self.motor_left.stop()
         print("Turned")
 
-    def move_forward(self, time_sec: int, speed: int = 50):
+    def move_forward(self, time_sec: int, speed: int = 50) -> None:
         print(f"Move forward: time_sec:{time_sec}, speed={speed}...")
         self.motor_right.speed_sp = speed
         self.motor_left.speed_sp = speed
@@ -176,81 +195,39 @@ class Movement:
         print(f"Scanned ways, result: {result_list}")
         return result_list
 
-    def start_server(self):
-        print("Starting server")
-        self.motor_right.stop()
-        self.motor_left.stop()
-        PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
-
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.bind(('', PORT))
-            while True:
-                data: str = s.recv(1024).decode()
-                print(f"Got socket data: {data}")
-                if data == 's':
-                    self.motor_right.stop()
-                    self.motor_left.stop()
-                elif data.startswith('f#'):
-                    speed = int(data.split('#')[1])
-                    self.motor_right.speed_sp = speed
-                    self.motor_left.speed_sp = speed
-                    self.motor_right.command = "run-forever"
-                    self.motor_left.command = "run-forever"
-                elif data.startswith('b#'):
-                    speed = int(data.split('#')[1])
-                    self.motor_right.speed_sp = -speed
-                    self.motor_left.speed_sp = -speed
-                    self.motor_right.command = "run-forever"
-                    self.motor_left.command = "run-forever"
-                elif data.startswith('l#'):
-                    speed = int(data.split('#')[1])
-                    self.motor_right.speed_sp = speed
-                    self.motor_left.speed_sp = -speed
-                    self.motor_right.command = "run-forever"
-                    self.motor_left.command = "run-forever"
-                elif data.startswith('r#'):
-                    speed = int(data.split('#')[1])
-                    self.motor_right.speed_sp = -speed
-                    self.motor_left.speed_sp = speed
-                    self.motor_right.command = "run-forever"
-                    self.motor_left.command = "run-forever"
-                elif data == 'restart':
-                    self.motor_right.stop()
-                    self.motor_left.stop()
-                    return
-
-
     def main_loop(self):
+        self.calibrate_colors()
+
+        ready_response = self.communication.send_ready()
+        self.planet.name = ready_response.planet_name
+        self.position = ready_response.start_position
+
+        while True:
+            follow_line_result = self.follow_line()
+
+            if not follow_line_result.barrier:
+                old_position = copy(self.position)
+                self.position.point.x += follow_line_result.dx
+                self.position.point.y += follow_line_result.dy
+                self.position.direction = (self.position.direction + follow_line_result.relative_direction) % 360
+
+                start_tuple = ((old_position.point.x, old_position.point.y), old_position.direction)
+                target_tuple = ((self.position.point.x, self.position.point.y), self.position.direction)
+                self.planet.add_path(start_tuple, target_tuple, 1)
+
+            self.move_forward(4)
+
+            res_scan_ways = self.scan_ways()
+
+            # TODO smart path selection
+
+    def main(self):
         while True:
             try:
-                # self.calibrate_black_white()
-                self.sensors.white = Color(r=286, g=451, b=289)
-                self.sensors.black = Color(r=31, g=69, b=22)
-
-                # self.calibrate_red_blue()
-                self.sensors.red = Color(r=142, g=57, b=23)
-                self.sensors.blue = Color(r=34, g=158, b=138)
-
-                # self.communication.send_ready()
-
-                res_follow_line = self.follow_line()
-
-                self.move_forward(4)
-
-                res_scan_ways = self.scan_ways()
+                self.main_loop()
+                print("done")
+                self.debug_server.start()
             except KeyboardInterrupt:
-                self.start_server()
+                self.debug_server.start()
             except Exception as e:
-                self.start_server()
-
-            # while True:
-            #    self.follow_line()
-            #   self.scan_ways()
-            # send ready message to mothership
-
-            # follow line
-            # find all paths on edge
-            # send position to mothership
-            #
-            print("done")
-            self.start_server()
+                self.debug_server.start()

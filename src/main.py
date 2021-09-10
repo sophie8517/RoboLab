@@ -35,7 +35,7 @@ def run():
     # ADD YOUR OWN IMPLEMENTATION HEREAFTER.
     my_communication = Communication(client, logger)
     my_movement = Movement(my_communication)
-    my_movement.main_loop()
+    my_movement.main()
 
 
 # DO NOT EDIT
