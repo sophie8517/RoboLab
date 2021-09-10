@@ -50,17 +50,92 @@ class TestRoboLabPlanet(unittest.TestCase):
         self.planet = Planet()
         # self.planet.add_path(...)
 
+        self.planet.add_path(((0, 0), Direction.NORTH), ((0, 1), Direction.SOUTH), 1)
+        self.planet.add_path(((0,0),Direction.EAST), ((1,0), Direction.WEST), 2)
+        self.planet.add_path(((0,0), Direction.WEST), ((0,1), Direction.WEST), 3)
+        self.planet.add_path(((0,1), Direction.NORTH), ((0,2), Direction.SOUTH), 17)
+        self.planet.add_path(((1,0), Direction.NORTH), ((2,2), Direction.SOUTH), 3)
+        self.planet.add_path(((2,2), Direction.WEST), ((0,2), Direction.EAST), 4)
+        self.planet.add_path(((0,2), Direction.NORTH), ((0,3), Direction.SOUTH), 2)
+        self.planet.add_path(((2,2), Direction.NORTH),((0,3), Direction.EAST), 18)
+        self.planet.add_path(((0,3), Direction.NORTH), ((0,3), Direction.WEST), 4)
+
+        self.planet2 = Planet() # for empty planet
+
+        self.planet3 = Planet()
+        self.planet3.add_path(((0, 0), Direction.NORTH), ((0, 1), Direction.SOUTH), 3)
+        self.planet3.add_path(((0, 0), Direction.EAST), ((1, 0), Direction.WEST), 2)
+        self.planet3.add_path(((0, 0), Direction.WEST), ((0, 1), Direction.WEST), 3)
+        self.planet3.add_path(((0, 1), Direction.NORTH), ((0, 2), Direction.SOUTH), 17)
+        self.planet3.add_path(((1, 0), Direction.NORTH), ((2, 2), Direction.SOUTH), 3)
+        self.planet3.add_path(((2, 2), Direction.WEST), ((0, 2), Direction.EAST), 4)
+        self.planet3.add_path(((0, 2), Direction.NORTH), ((0, 3), Direction.SOUTH), 2)
+        self.planet3.add_path(((2, 2), Direction.NORTH), ((0, 3), Direction.EAST), 18)
+        self.planet3.add_path(((0, 3), Direction.NORTH), ((0, 3), Direction.WEST), 4)
+
+        self.planet4 = Planet()
+        self.planet4.add_path(((0, 0), Direction.NORTH), ((0, 1), Direction.SOUTH), 1)
+        self.planet4.add_path(((0, 0), Direction.EAST), ((1, 0), Direction.WEST), 2)
+        self.planet4.add_path(((0, 0), Direction.WEST), ((0, 1), Direction.WEST), 3)
+        self.planet4.add_path(((0, 1), Direction.NORTH), ((0, 2), Direction.SOUTH), 17)
+        self.planet4.add_path(((1, 0), Direction.NORTH), ((2, 2), Direction.SOUTH), 3)
+        self.planet4.add_path(((2, 2), Direction.WEST), ((0, 2), Direction.EAST), 13)
+        self.planet4.add_path(((0, 2), Direction.NORTH), ((0, 3), Direction.SOUTH), 2)
+        self.planet4.add_path(((2, 2), Direction.NORTH), ((0, 3), Direction.EAST), 18)
+        self.planet4.add_path(((0, 3), Direction.NORTH), ((0, 3), Direction.WEST), 4)
+
+        self.planet5 = Planet()
+        self.planet5.add_path(((0, 0), Direction.NORTH), ((0, 1), Direction.SOUTH), 1)
+        self.planet5.add_path(((0, 0), Direction.EAST), ((1, 0), Direction.WEST), 2)
+        self.planet5.add_path(((0, 0), Direction.WEST), ((0, 1), Direction.WEST), 3)
+        self.planet5.add_path(((0, 1), Direction.NORTH), ((0, 2), Direction.SOUTH), 1)
+        self.planet5.add_path(((1, 0), Direction.NORTH), ((2, 2), Direction.SOUTH), 3)
+        self.planet5.add_path(((2, 2), Direction.WEST), ((0, 2), Direction.EAST), 4)
+        self.planet5.add_path(((0, 2), Direction.NORTH), ((0, 3), Direction.SOUTH), -1)
+        self.planet5.add_path(((2, 2), Direction.NORTH), ((0, 3), Direction.EAST), -1)
+        self.planet5.add_path(((0, 3), Direction.NORTH), ((0, 3), Direction.WEST), 4)
+
+
+
     def test_integrity(self):
         """
         This test should check that the dictionary returned by "planet.get_paths()" matches the expected structure
         """
-        self.fail('implement me!')
+        dict = {
+            (0,0):
+                {Direction.NORTH: ((0,1), Direction.SOUTH,1),
+                 Direction.EAST: ((1,0), Direction.WEST, 2),
+                 Direction.WEST: ((0,1), Direction.WEST,3)},
+            (0,1):
+                {Direction.SOUTH: ((0,0), Direction.NORTH, 1),
+                 Direction.WEST: ((0,0), Direction.WEST, 3),
+                 Direction.NORTH:((0,2), Direction.SOUTH,17)},
+            (0,2):
+                {Direction.SOUTH: ((0,1), Direction.NORTH, 17),
+                 Direction.NORTH: ((0,3), Direction.SOUTH,2),
+                 Direction.EAST: ((2,2), Direction.WEST,4)},
+            (0,3):
+                {Direction.SOUTH: ((0,2), Direction.NORTH, 2),
+                 Direction.NORTH: ((0,3), Direction.WEST, 4),
+                 Direction.WEST: ((0,3), Direction.NORTH, 4),
+                 Direction.EAST: ((2,2), Direction.NORTH, 18)},
+            (1,0):
+                {Direction.WEST: ((0,0), Direction.EAST, 2),
+                 Direction.NORTH: ((2,2), Direction.SOUTH, 3)},
+            (2,2):
+                {Direction.WEST: ((0,2), Direction.EAST, 4),
+                 Direction.NORTH: ((0,3), Direction.EAST, 18),
+                 Direction.SOUTH: ((1,0), Direction.NORTH, 3)}
+        }
+
+        self.assertDictEqual(self.planet.get_paths(),dict)
+        self.assertDictEqual(self.planet2.get_paths(), {})
 
     def test_empty_planet(self):
         """
         This test should check that an empty planet really is empty
         """
-        self.fail('implement me!')
+        self.assertDictEqual(self.planet2.get_paths(),{})
 
     def test_target(self):
         """
@@ -68,13 +143,15 @@ class TestRoboLabPlanet(unittest.TestCase):
 
         Requirement: Minimum distance is three nodes (two paths in list returned)
         """
-        self.fail('implement me!')
+        result = [((0,0), Direction.EAST), ((1,0), Direction.NORTH), ((2,2), Direction.WEST)]
+        self.assertListEqual(self.planet.shortest_path((0,0),(0,2)), result)
+
 
     def test_target_not_reachable(self):
         """
         This test should check that a target outside the map or at an unexplored node is not reachable
         """
-        self.fail('implement me!')
+        self.assertIsNone(self.planet.shortest_path((0,0), (0,4)))
 
     def test_same_length(self):
         """
@@ -83,7 +160,12 @@ class TestRoboLabPlanet(unittest.TestCase):
 
         Requirement: Minimum of two paths with same cost exists, only one is returned by the logic implemented
         """
-        self.fail('implement me!')
+        result = [((0,1),Direction.SOUTH), ((0,0), Direction.EAST), ((1,0), Direction.NORTH)]
+        self.assertListEqual(self.planet3.shortest_path((0,1),(2,2)), result)
+        result2 = [((0,0), Direction.NORTH), ((0,1), Direction.NORTH), ((0,2), Direction.NORTH)]
+
+        self.assertListEqual(self.planet4.shortest_path((0,0), (0,3)), result2)
+
 
     def test_target_with_loop(self):
         """
@@ -92,7 +174,8 @@ class TestRoboLabPlanet(unittest.TestCase):
 
         Result: Target is reachable
         """
-        self.fail('implement me!')
+        result = [((1,0),Direction.WEST),((0,0), Direction.NORTH), ((0,1), Direction.NORTH)]
+        self.assertListEqual(self.planet5.shortest_path((1,0), (0,2)), result)
 
     def test_target_not_reachable_with_loop(self):
         """
@@ -101,8 +184,10 @@ class TestRoboLabPlanet(unittest.TestCase):
 
         Result: Target is not reachable
         """
-        self.fail('implement me!')
+
+        self.assertIsNone(self.planet5.shortest_path((0, 0), (0, 3)))
 
 
 if __name__ == "__main__":
     unittest.main()
+
