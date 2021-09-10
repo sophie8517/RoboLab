@@ -6,13 +6,14 @@ import logging
 import platform
 import queue
 import ssl
-
+import re
+import time
 # Fix: SSL certificate problem on macOS
 from dataclasses import dataclass
 from typing import Any, Optional, List
 
-import paho.mqtt.client
-
+import paho
+import paho.mqtt.client as client
 from planet import Position, Point, Direction
 
 if all(platform.mac_ver()):
@@ -48,7 +49,7 @@ class Communication:
     thereby solve the task according to the specifications
     """
 
-    def __init__(self, mqtt_client: paho.mqtt.client.Client, logger: logging.Logger,) -> None:
+    def __init__(self, mqtt_client: client.Client, logger: logging.Logger, ) -> None:
         """
         Initializes communication module, connect to server, subscribe, etc.
         :param mqtt_client: paho.mqtt.client.Client
@@ -60,11 +61,12 @@ class Communication:
         self.client.on_message = self.safe_on_message_handler
         # Add your client setup here
         self.topic = 'explorer/229'
-        self.planet: str
+        self.planet = "planetWithNoName"
         self.client.username_pw_set('229', password='o4CzKPpAgl')  # Your group credentials
         self.client.connect('mothership.inf.tu-dresden.de', port=8883)
         self.client.subscribe(self.topic, qos=1)  # Subscribe to topic explorer/xxx
-        self.client.loop_start()
+        self.client.subscribe("planet/" + self.planet + "/229")
+        # self.client.loop_start()
 
         self.logger = logger
         self.que = queue.Queue()
@@ -96,13 +98,12 @@ class Communication:
         :param message: Object
         :return: void
         """
+
         self.logger.debug('Send to: ' + topic)
         self.logger.debug(json.dumps(message, indent=2))
 
         # YOUR CODE FOLLOWS (remove pass, please!)
         self.client.publish(topic, message)
-        # TODO?
-        self.que.put(message)
 
     # DO NOT EDIT THE METHOD SIGNATURE OR BODY
     #
@@ -127,8 +128,7 @@ class Communication:
     # Send to mothership #
     ######################
 
-    def send_testplanet(self, planet_name: str) -> None:
-        # TODO
+    def send_testplanet(self, planet_name: str) -> str:
         message = {
             "from": "client",
             "type": "testplanet",
@@ -138,6 +138,13 @@ class Communication:
         }
         message_to_send = json.dumps(message, indent=2)
         self.send_message(self.topic, message_to_send)
+
+        received_msg = self.que.get(timeout=10)
+        if received_msg["type"] == "notice":
+            msg_contains_planet_name = received_msg["payload"]["message"]
+            # use regex to extract planet name
+            result = re.split('\\s', msg_contains_planet_name)
+            return result[2]
 
     def send_ready(self) -> SendReadyResponse:
         ready_msg = {
@@ -162,17 +169,17 @@ class Communication:
         end_direction = end_position.direction
 
         response = {
-                    "from": "client",
-                    "type": "path",
-                    "payload": {
-                        "startX": startx ,
-                        "startY": starty,
-                        "startDirection": start_direction,
-                        "endX": endx,
-                        "endY": endy,
-                        "endDirection": end_direction,
-                        "pathStatus": "free"
-                        }
+            "from": "client",
+            "type": "path",
+            "payload": {
+                "startX": startx,
+                "startY": starty,
+                "startDirection": start_direction,
+                "endX": endx,
+                "endY": endy,
+                "endDirection": end_direction,
+                "pathStatus": "free"
+            }
         }
         if path_blocked:
             response["payload"]["endX"] = startx
@@ -182,28 +189,109 @@ class Communication:
         topic = "planet/" + self.planet + "/229"
         response = json.dumps(response, indent=2)
         self.send_message(topic, response)
-        return SendPathResponse(Position(Point(startx, starty), start_direction), Position(Point(endx, endy), end_direction))
+        return SendPathResponse(Position(Point(startx, starty), start_direction),
+                                Position(Point(endx, endy), end_direction))
 
     def send_path_select(self, position: Position) -> Direction:
-        #TODO
-        pass
+        msg = {
+            "from": "client",
+            "type": "pathSelect",
+            "payload": {
+                "startX": position.point.x,
+                "startY": position.point.y,
+                "startDirection": position.direction
+            }
+        }
+        msg = json.dumps(msg, indent=2)
+        topic = "planet/" + self.planet + "/229"
+        self.client.publish(topic, msg)
+        while True:
+            message = self.que.get()
+            if message["type"] == "pathSelect":
+                return Direction(int(message["payload"]["startDirection"]))
 
-    def send_exploration_completed(self, text: str) -> None:
-        # TODO
-        pass
+    def send_exploration_completed(self, text: str) -> bool:
+        msg = {
+            "from": "client",
+            "type": "explorationCompleted",
+            "payload": {
+                "message": text
+            }
+        }
+        msg = json.dumps(msg, indent=2)
+        self.send_message(self.topic, msg)
+        return self.current_mission_completed()
 
-    def send_target_reached(self, text: str) -> None:
-        # TODO
-        pass
+    def send_target_reached(self, text: str) -> bool:
+        msg = {
+            "from": "client",
+            "type": "targetReached",
+            "payload": {
+                "message": text
+            }
+        }
+        msg = json.dumps(msg, indent=2)
+        self.send_message(self.topic, msg)
+        return self.current_mission_completed()
 
     ###########################
     # Receive from mothership #
     ###########################
 
     def receive_path_unveiled(self) -> List[PathUnveiledResponse]:
-        # TODO
-        pass
+        paths_messages = self.filter_messages_on_type("pathUnveiled")
+        paths_unveiled = []
+        for msg in paths_messages:
+            payload = msg["payload"]
+            path = PathUnveiledResponse(Position(Point(payload["startX"],
+                                                       payload["startY"]),
+                                                 payload["startDirection"]),
+                                        Position(Point(payload["endX"],
+                                                       payload["endY"]),
+                                                 payload["endDirection"]),
+                                        payload["pathStatus"],
+                                        payload["pathWeight"])
+            paths_unveiled.append(path)
+        return paths_unveiled
 
     def receive_target(self) -> Optional[Point]:
-        # TODO
-        pass
+
+        target = self.filter_messages_on_type("target")[0]
+        if target:
+            point = Point(target["payload"]["targetX"], target["payload"]["targetY"])
+            return point
+        return None
+
+    #########################
+    # helper method         #
+    #########################
+    def vaidate_json(self, message: Any):
+        try:
+            json.dump(message, indent=2)
+            return True
+        except ValueError as err:
+            self.send_message(self.topic, "JSON format error")
+            return False
+
+    def filter_messages_on_type(self, type: str) -> [dict]:
+        result = []
+        while self.que:
+            msg = self.que.get()
+            if msg["type"] is type:
+                result.append(msg)
+        return result
+
+    def current_mission_completed(self) -> bool:
+        mothership_msg = self.que.get(timeout=10)
+        if mothership_msg["type"] == "done":
+            self.logger.debug("Mother ship: ".format(mothership_msg["payload"]["message"]))
+            return True
+        return False
+
+    def on_connect(self, client):
+        self.logger.debug("{}Connected to the broker".format(client))
+
+    def on_disconnect(self, userdata, rc=0):
+        logging.debug("DisConnected result code "+str(rc))
+        self.client.loop_stop()
+

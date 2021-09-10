@@ -4,7 +4,9 @@ import unittest.mock
 import paho.mqtt.client as mqtt
 import uuid
 
-from communication import Communication
+from src.communication import Communication
+from src.planet import Direction, Point, Position
+
 
 class TestRoboLabCommunication(unittest.TestCase):
     @unittest.mock.patch('logging.Logger')
