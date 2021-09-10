@@ -210,7 +210,7 @@ class Movement:
 
         self.motor_left.stop()
         self.motor_right.stop()
-        time.sleep(1)
+        time.sleep(0.5)
 
 
 
@@ -244,8 +244,6 @@ class Movement:
             self.turn(45)
             l = Direction.EAST
             self.select_way(l)
-
-
 
             # TODO smart path selection
 
