@@ -17,7 +17,7 @@ class Odometry:
         dy = 0
         gamma = 0
 
-        with open('../odometrie_json/kleine_schleife_links.json', 'r') as reader:
+        with open('../odometrie_json/handy_wilde_kurve_02.json', 'r') as reader:
             ticks = json.load(reader)
 
         # distance_per_tick = 14.5 / 300
@@ -41,7 +41,7 @@ class Odometry:
             alpha = (dr - dl) / wheel_distance
             beta = alpha / 2
             if alpha != 0:
-                s = ((dr - dl) / alpha) * math.sin(beta)
+                s = ((dr + dl) / alpha) * math.sin(beta)
             else:
                 s = dr
             dx += -math.sin(gamma + beta) * s
@@ -54,6 +54,7 @@ class Odometry:
         print("dx: ", dx)
         print("dy: ", dy)
         print("s_ges: ", s_ges)
+
 
         # distance = ticks * distance_per_tick
 
