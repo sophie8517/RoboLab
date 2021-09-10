@@ -85,6 +85,7 @@ class Communication:
         self.que.put(message)
         # YOUR CODE FOLLOWS (remove pass, please!)
         # TODO
+        
         # check msg content if type is "planet". If so call send ready
 
     # DO NOT EDIT THE METHOD SIGNATURE
@@ -139,25 +140,29 @@ class Communication:
         message_to_send = json.dumps(message, indent=2)
         self.send_message(self.topic, message_to_send)
 
-        received_msg = self.que.get(timeout=10)
-        if received_msg["type"] == "notice":
-            msg_contains_planet_name = received_msg["payload"]["message"]
-            # use regex to extract planet name
-            result = re.split('\\s', msg_contains_planet_name)
-            return result[2]
+
+        while not(self.que.empty()):
+            received_msg = self.que.get(timeout=10)
+            if received_msg["type"] == "notice":
+                msg_contains_planet_name = received_msg["payload"]["message"]
+                # use regex to extract planet name
+                result = re.split('\\s', msg_contains_planet_name)
+                return result[2]
 
     def send_ready(self) -> SendReadyResponse:
         ready_msg = {
             "from": "client",
             "type": "ready"
         }
-        message = json.load(self.que.get(timeout=10))
-        if message["type"] == "planet":
-            ready_msg = json.dumps(ready_msg, indent=2)
-            self.send_message(self.topic, ready_msg)
-            position = Position(message["payload"]["startX"], message["payload"]["startY"])
-            ready_response = SendReadyResponse(message["payload"]["planetName"], position)
-            return ready_response
+        ready_msg = json.dumps(ready_msg, indent=2)
+        self.send_message(self.topic, ready_msg)
+        while not(self.que.empty()):
+            message = json.load(self.que.get(timeout=10))
+            if message["type"] == "planet":
+                position = Position(message["payload"]["startX"], message["payload"]["startY"])
+                ready_response = SendReadyResponse(message["payload"]["planetName"], position)
+                return ready_response
+
         return None
 
     def send_path(self, start_position: Position, end_position: Position, path_blocked: bool) -> SendPathResponse:
@@ -203,9 +208,9 @@ class Communication:
             }
         }
         msg = json.dumps(msg, indent=2)
-        topic = "planet/" + self.planet + "/229"
-        self.client.publish(topic, msg)
-        while True:
+        #topic = "planet/" + self.planet + "/229"
+        self.client.publish(self.topic, msg)
+        while not(self.que.empty()):
             message = self.que.get()
             if message["type"] == "pathSelect":
                 return Direction(int(message["payload"]["startDirection"]))
@@ -282,11 +287,13 @@ class Communication:
         return result
 
     def current_mission_completed(self) -> bool:
-        mothership_msg = self.que.get(timeout=10)
-        if mothership_msg["type"] == "done":
-            self.logger.debug("Mother ship: ".format(mothership_msg["payload"]["message"]))
-            return True
+        while not(self.que.empty()):
+            mothership_msg = self.que.get(timeout=10)
+            if mothership_msg["type"] == "done":
+                self.logger.debug("Mother ship: ".format(mothership_msg["payload"]["message"]))
+                return True
         return False
+
 
     def on_connect(self, client):
         self.logger.debug("{}Connected to the broker".format(client))
