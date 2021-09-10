@@ -196,7 +196,7 @@ class Movement:
         print(f"Scanned ways, result: {result_list}")
         return result_list
 
-    def select_way(self, new_direc):
+    def turn_to_way(self, new_direc):
 
 
         angle = int(new_direc)
@@ -243,7 +243,7 @@ class Movement:
             res_scan_ways = self.scan_ways()
             self.turn(45)
             l = Direction.EAST
-            self.select_way(l)
+            self.turn_to_way(l)
 
             # TODO smart path selection
 
