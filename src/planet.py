@@ -239,10 +239,13 @@ class Planet:
 
                     old_weight = distance_dict[k[0]]
                     new_weight = 0
-                    part = 0
+                    weights = []
                     for ky in self.paths[recent_node].values():
-                        if ky[0] == k[0]:
-                            part = k[2]
+                        if ky[0] == k[0] and ky[2] > 0:
+                            weights.append(ky[2])
+                    part = min(weights)
+
+
                     new_weight = distance_dict[recent_node] + part  #calculates the distance if you 'go over'
                                                                     # the recent node
 
