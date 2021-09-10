@@ -17,7 +17,7 @@ class Odometry:
         dy = 0
         gamma = 0
 
-        with open('../odometrie_json/handy_wilde_kurve_02.json', 'r') as reader:
+        with open('../odometrie_json/90_grad_linkskurve.json', 'r') as reader:
             ticks = json.load(reader)
 
         # distance_per_tick = 14.5 / 300
@@ -36,15 +36,15 @@ class Odometry:
         length_delta = []
         s_ges = 0
         for i in ticks_delta:
-            dr = i[0] * distance_per_tick
-            dl = i[1] * distance_per_tick
-            alpha = (dr - dl) / wheel_distance
+            dr = i[1] * distance_per_tick   # i[0] fuer links ??????
+            dl = i[0] * distance_per_tick   # i[1] fuer rechts??????
+            alpha = (dl - dr) / wheel_distance
             beta = alpha / 2
             if alpha != 0:
                 s = ((dr + dl) / alpha) * math.sin(beta)
             else:
                 s = dr
-            dx += -math.sin(gamma + beta) * s
+            dx += math.sin(gamma + beta) * s
             dy += math.cos(gamma + beta) * s
             s_ges += s
             gamma += alpha
