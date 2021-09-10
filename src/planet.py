@@ -235,7 +235,7 @@ class Planet:
 
 
             for k in list(self.paths[recent_node].values()):
-                if k[0] in unvisited:  # k[0] is target node, the k[0]'s are the neighbors of the recent node
+                if k[0] in unvisited and not(k[2] == -1):  # k[0] is target node, the k[0]'s are the neighbors of the recent node
 
                     old_weight = distance_dict[k[0]]
                     new_weight = 0
