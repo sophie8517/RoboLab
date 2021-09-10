@@ -1,4 +1,3 @@
-import json
 import time
 import traceback
 from copy import copy
@@ -152,9 +151,7 @@ class Movement:
                 self.motor_left.stop()
                 result = FollowLineResult(1, 1, Direction.NORTH, barrier_on_path)
                 print(f"Followed line with result: {result}")
-                filename = input("Filename?\n")
-                with open(f"/home/robot/{filename}.json", "w") as file:
-                    file.write(json.dumps(moto_pos_list))
+                print(moto_pos_list)
                 return result
 
     def turn_and_scan(self) -> bool:
@@ -199,6 +196,27 @@ class Movement:
         print(f"Scanned ways, result: {result_list}")
         return result_list
 
+    def turn_to_way(self, new_direc):
+
+
+        angle = int(new_direc)
+        self.turn(angle-15)
+
+        while abs(self.sensors.get_color().brightness() - self.sensors.black.brightness()) > 50:
+            self.motor_right.speed_sp = -50
+            self.motor_left.speed_sp = 50
+            self.motor_right.command = "run-forever"
+            self.motor_left.command = "run-forever"
+
+        self.motor_left.stop()
+        self.motor_right.stop()
+        time.sleep(0.5)
+
+
+
+
+
+
     def main_loop(self):
         self.calibrate_colors()
 
@@ -208,22 +226,24 @@ class Movement:
 
         while True:
             follow_line_result = self.follow_line(speed=80)
-            return
-            continue
 
-            if not follow_line_result.barrier:
-                old_position = copy(self.position)
-                self.position.point.x += follow_line_result.dx
-                self.position.point.y += follow_line_result.dy
-                self.position.direction = (self.position.direction + follow_line_result.relative_direction) % 360
 
-                start_tuple = ((old_position.point.x, old_position.point.y), old_position.direction)
-                target_tuple = ((self.position.point.x, self.position.point.y), self.position.direction)
-                self.planet.add_path(start_tuple, target_tuple, 1)
+            #if not follow_line_result.barrier:
+                #old_position = copy(self.position)
+                #self.position.point.x += follow_line_result.dx
+                #self.position.point.y += follow_line_result.dy
+                #self.position.direction = (self.position.direction + follow_line_result.relative_direction) % 360
+
+                #start_tuple = ((old_position.point.x, old_position.point.y), old_position.direction)
+                #target_tuple = ((self.position.point.x, self.position.point.y), self.position.direction)
+                #self.planet.add_path(start_tuple, target_tuple, 1)
 
             self.move_forward(4)
 
             res_scan_ways = self.scan_ways()
+            self.turn(45)
+            l = Direction.EAST
+            self.turn_to_way(l)
 
             # TODO smart path selection
 
@@ -233,8 +253,10 @@ class Movement:
                 self.main_loop()
                 print("done")
                 self.debug_server.start()
+
+
             except KeyboardInterrupt:
-                print("Keyyyyyyyyyyyy")
+                print("keyyyy")
                 self.debug_server.start()
             except Exception as e:
                 traceback.print_exc()
