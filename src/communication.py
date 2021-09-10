@@ -61,7 +61,7 @@ class Communication:
         self.client.tls_set(tls_version=ssl.PROTOCOL_TLS)
         self.client.on_message = self.safe_on_message_handler
         # Add your client setup here
-        self.group = 229
+        self.group = "229"
         self.topic = f'explorer/{self.group}'
         self.planet = "planetWithNoName"
         self.client.username_pw_set(self.group, password='o4CzKPpAgl')  # Your group credentials
