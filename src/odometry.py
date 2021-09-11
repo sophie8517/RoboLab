@@ -74,6 +74,10 @@ class Odometry:
         direction = Direction(angle)
         return CalculateResult(dx, dy, direction)
 
+    def calc(self, motor_ticks: list[tuple[int, int]]) -> CalculateResult:
+        my_precise_result = self.calculate_precise(motor_ticks)
+        return self.calculate_grid(my_precise_result.dx_cm, my_precise_result.dy_cm, my_precise_result.angle_degree)
+
 
 if __name__ == '__main__':
     o = Odometry()

@@ -216,7 +216,7 @@ class Communication:
         path_weight = payload["pathWeight"]
         return SendPathResponse(start_position_response, end_position_response, path_blocked, path_weight)
 
-    def send_path_select(self, position: Position) -> Direction:
+    def send_path_select(self, position: Position) -> Optional[Direction]:
         message = {
             "from": "client",
             "type": "pathSelect",
@@ -226,13 +226,15 @@ class Communication:
                 "startDirection": position.direction
             }
         }
-        self.client.publish(self.planet_topic, message)
+        self.send_message(self.planet_topic, message)
 
         time.sleep(1)
 
         response = self.get_first_response_by_type("pathSelect")
+        if response:
+            return Direction(response["payload"]["startDirection"])
 
-        return Direction(response["payload"]["startDirection"])
+        return None
 
     def send_target_reached(self, text: str) -> None:
         message = {
