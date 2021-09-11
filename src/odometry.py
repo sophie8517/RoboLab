@@ -1,6 +1,24 @@
 # !/usr/bin/env python3
 import json
 import math
+from dataclasses import dataclass
+
+from planet import Direction
+
+
+@dataclass
+class CalculatePreciseResult:
+    dx_cm: float
+    dy_cm: float
+    s_cm: float
+    angle_degree: float
+
+
+@dataclass
+class CalculateResult:
+    dx: int
+    dy: int
+    direction: Direction
 
 
 class Odometry:
@@ -10,55 +28,61 @@ class Odometry:
         """
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        pass
+        #############
+        # Constants #
+        #############
+        self.distance_per_tick = 14.5 / 300
+        self.wheel_distance = 15.6
 
-    def do(self):
+    def calculate_precise(self, motor_ticks: list[tuple[int, int]]) -> CalculatePreciseResult:
         dx = 0
         dy = 0
-        gamma = 0
+        s_ges = 0
+        gamma_rad = 0
 
-        with open('../odometrie_json/90_grad_linkskurve.json', 'r') as reader:
-            ticks = json.load(reader)
-
-        # distance_per_tick = 14.5 / 300
-        # distance_per_tick = 0.04833333333333333
-        # wheel_distance = 15.6 # 15.6 15.6 15.6 15.6 15.6
-
-        distance_per_tick = 14.5 / 300
-        wheel_distance = 15.6
-
-        ticks_delta = []
-        last_element = ticks.pop(0)
-        for i in ticks:
+        ticks_delta: list[tuple[int, int]] = []
+        last_element = motor_ticks.pop(0)
+        for i in motor_ticks:
             ticks_delta.append((i[0] - last_element[0], i[1] - last_element[1]))
             last_element = i
 
-        length_delta = []
-        s_ges = 0
+        length_delta: list[tuple[float, float]] = []
+
         for i in ticks_delta:
-            dr = i[1] * distance_per_tick   # i[0] fuer links ??????
-            dl = i[0] * distance_per_tick   # i[1] fuer rechts??????
-            alpha = (dl - dr) / wheel_distance
+            dl = i[0] * self.distance_per_tick
+            dr = i[1] * self.distance_per_tick
+            alpha = (dl - dr) / self.wheel_distance
             beta = alpha / 2
             if alpha != 0:
                 s = ((dr + dl) / alpha) * math.sin(beta)
             else:
                 s = dr
-            dx += math.sin(gamma + beta) * s
-            dy += math.cos(gamma + beta) * s
+            dx += math.sin(gamma_rad + beta) * s
+            dy += math.cos(gamma_rad + beta) * s
             s_ges += s
-            gamma += alpha
+            gamma_rad += alpha
             length_delta.append((s, alpha))
 
-        print("New Orientation in degree: ", math.degrees(gamma))
-        print("dx: ", dx)
-        print("dy: ", dy)
-        print("s_ges: ", s_ges)
+        return CalculatePreciseResult(dx, dy, s_ges, math.degrees(gamma_rad))
 
-
-        # distance = ticks * distance_per_tick
+    @staticmethod
+    def calculate_grid(dx_cm: float, dy_cm: float, angle_degree: float) -> CalculateResult:
+        dx = round(dx_cm / 50)
+        dy = round(dy_cm / 50)
+        angle = round(angle_degree / 90) * 90
+        angle = angle % 360
+        direction = Direction(angle)
+        return CalculateResult(dx, dy, direction)
 
 
 if __name__ == '__main__':
     o = Odometry()
-    o.do()
+
+    with open('../odometrie_json/zwei_mal_45_cm_gerade.json', 'r') as reader:
+        ticks = json.load(reader)
+
+    precise_result = o.calculate_precise(ticks)
+    print(precise_result)
+
+    grid_result = o.calculate_grid(precise_result.dx_cm, precise_result.dy_cm, precise_result.angle_degree)
+    print(grid_result)
