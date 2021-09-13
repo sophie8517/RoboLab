@@ -74,7 +74,7 @@ class SmartDiscovery:
         if(found == 0):
             raise DiscoveryComplete("Complete")
 
-
+        return result
 
 
 
