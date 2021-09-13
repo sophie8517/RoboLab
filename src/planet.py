@@ -47,6 +47,7 @@ class Planet:
         self.paths = {}
         self.name = str
 
+
     def add_path(self, start: Tuple[Tuple[int, int], Direction], target: Tuple[Tuple[int, int], Direction],
                  weight: int):
         """
@@ -85,6 +86,9 @@ class Planet:
 
 
 
+
+
+
     def get_paths(self) -> Dict[Tuple[int, int], Dict[Direction, Tuple[Tuple[int, int], Direction, Weight]]]:
         """
         Returns all paths
@@ -107,6 +111,14 @@ class Planet:
 
         # YOUR CODE FOLLOWS (remove pass, please!)
         return self.paths
+
+    def shortest_path_points(self,start: Tuple[int, int], target: Tuple[int, int]):
+        result = []
+        shortest_path = self.shortest_path(start, target)
+        for elem in shortest_path:
+            result.append(Position(Point(elem[0][0]), elem[1]))
+
+        return result
 
     def shortest_path(self, start: Tuple[int, int], target: Tuple[int, int]) -> Union[None, List[Tuple[Tuple[int, int], Direction]]]:
         """
