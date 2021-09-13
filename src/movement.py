@@ -227,6 +227,9 @@ class Movement:
             self.planet.remove_undiscovered_paths(send_path_response.start_position.point, send_path_response.start_position.direction)
             self.planet.remove_undiscovered_paths(send_path_response.end_position.point, send_path_response.end_position.direction)
 
+            self.paths_list.remove(send_path_response.start_position)
+
+
             self.move_forward(4)
 
             res_scan_ways = self.scan_ways()
@@ -249,6 +252,8 @@ class Movement:
 
 
 
+
+
             #selected_direction_absolute = Direction((selected_direction_relative + self.position.direction) % 360)
             selected_position = Position(self.position.point, selected_direction)
             send_path_select_response = self.communication.send_path_select(selected_position)
@@ -256,6 +261,7 @@ class Movement:
                 print(f"Better direction form mothership: {send_path_select_response}")
                 self.turn_to_way_absolute(send_path_select_response)
             else:
+                print(f'selected direction: {selected_direction}')
                 self.turn_to_way_absolute(selected_direction)
 
     def main(self):
