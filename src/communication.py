@@ -234,13 +234,14 @@ class Communication:
                 "startDirection": position.direction
             }
         }
-        self.client.publish(self.planet_topic, message)
+        self.send_message(self.planet_topic, message)
 
         time.sleep(1)
 
         response = self.get_first_response_by_type("pathSelect")
-
-        return Direction(response["payload"]["startDirection"])
+        if response:
+            return Direction(response["payload"]["startDirection"])
+        return None
 
     def send_target_reached(self, text: str) -> None:
         message = {

@@ -34,54 +34,54 @@ class TestRoboLabCommunication(unittest.TestCase):
 
     # self.communication.client.unsubscribe("explorer/229")
 
-        # self.communication.client.subscribe(self.test_topic)
+    # self.communication.client.subscribe(self.test_topic)
 
-        # self.planets = {
-        #     "Gromit-M3": Position(Point(-1, 2), planet.Direction.NORTH),
-        #     "Chadwick": Position(Point(1, 10), planet.Direction.NORTH),
-        #     "Mehl-M1": Position(Point(3, 4), planet.Direction.WEST),
-        #     "Cake": Position(Point(-12, -2), planet.Direction.EAST),
-        #     "Candle": Position(Point(19, -2), planet.Direction.NORTH),
-        #     "Caramel": Position(Point(1, -2), planet.Direction.NORTH),
-        #     "Cheesecake": Position(Point(6, -2), planet.Direction.NORTH),
-        #     "Cherry": Position(Point(6, -2), planet.Direction.NORTH),
-        #     "Chia": Position(Point(-9, -1), planet.Direction.NORTH),
-        #     "Chocolate": Position(Point(-12, -2), planet.Direction.EAST),
-        #     "Cinnamon": Position(Point(23, -2), planet.Direction.EAST),
-        #     "Citron": Position(Point(-3, -2), planet.Direction.SOUTH),
-        #     "Coca": Position(Point(12, -2), planet.Direction.NORTH),
-        #     "Coconut": Position(Point(0, 0), planet.Direction.NORTH),
-        #     "Cookie": Position(Point(-6, -2), planet.Direction.NORTH),
-        #     "Cream": Position(Point(15, -2), planet.Direction.NORTH),
-        #     "Gromit-E": Position(Point(-2, 1), planet.Direction.NORTH),
-        #     "Gromit-T": Position(Point(-1, -2), planet.Direction.NORTH),
-        #     "Gromit-TT": Position(Point(-1, -2), planet.Direction.NORTH),
-        #     "Gromit-W": Position(Point(2, -1), planet.Direction.WEST),
-        #     "Gromit": Position(Point(-1, -2), planet.Direction.NORTH),
-        #     "Mehl": Position(Point(3, 4), planet.Direction.WEST),
-        #     "Reis": Position(Point(69, 69), planet.Direction.SOUTH),
-        #     "Gromit-M1": Position(Point(-1, -2), planet.Direction.NORTH),
-        #     "Gromit-M2": Position(Point(-1, -2), planet.Direction.NORTH),
-        #     "Gromit-M3": Position(Point(-1, -2), planet.Direction.NORTH),
-        #     "Fassaden-M1": Position(Point(5, 0), planet.Direction.NORTH),
-        #     "Fassaden": Position(Point(5, 0), planet.Direction.NORTH),
-        #     "Ibem": Position(Point(-1, 0), planet.Direction.NORTh),
-        #     "Mebi": Position(Point(-1, 0), planet.Direction.NORTH),
-        #     "Mebi-T20": Position(Point(-1, 0), planet.Direction.NORTH),
-        #     "Kuehlelement": Position(Point(-14, -3), planet.Direction.EAST),
-        #     "Boseman": Position(Point(6, 5), planet.Direction.SOUTH),
-        #     "Anin": Position(Point(15, 2), planet.Direction.NORTH),
-        #     "Nailik": Position(Point(17, 2), planet.Direction.NORTH),
-        #     "Leinad": Position(Point(13, 2), planet.Direction.WEST),
-        #
-        # }
+    # self.planets = {
+    #     "Gromit-M3": Position(Point(-1, 2), planet.Direction.NORTH),
+    #     "Chadwick": Position(Point(1, 10), planet.Direction.NORTH),
+    #     "Mehl-M1": Position(Point(3, 4), planet.Direction.WEST),
+    #     "Cake": Position(Point(-12, -2), planet.Direction.EAST),
+    #     "Candle": Position(Point(19, -2), planet.Direction.NORTH),
+    #     "Caramel": Position(Point(1, -2), planet.Direction.NORTH),
+    #     "Cheesecake": Position(Point(6, -2), planet.Direction.NORTH),
+    #     "Cherry": Position(Point(6, -2), planet.Direction.NORTH),
+    #     "Chia": Position(Point(-9, -1), planet.Direction.NORTH),
+    #     "Chocolate": Position(Point(-12, -2), planet.Direction.EAST),
+    #     "Cinnamon": Position(Point(23, -2), planet.Direction.EAST),
+    #     "Citron": Position(Point(-3, -2), planet.Direction.SOUTH),
+    #     "Coca": Position(Point(12, -2), planet.Direction.NORTH),
+    #     "Coconut": Position(Point(0, 0), planet.Direction.NORTH),
+    #     "Cookie": Position(Point(-6, -2), planet.Direction.NORTH),
+    #     "Cream": Position(Point(15, -2), planet.Direction.NORTH),
+    #     "Gromit-E": Position(Point(-2, 1), planet.Direction.NORTH),
+    #     "Gromit-T": Position(Point(-1, -2), planet.Direction.NORTH),
+    #     "Gromit-TT": Position(Point(-1, -2), planet.Direction.NORTH),
+    #     "Gromit-W": Position(Point(2, -1), planet.Direction.WEST),
+    #     "Gromit": Position(Point(-1, -2), planet.Direction.NORTH),
+    #     "Mehl": Position(Point(3, 4), planet.Direction.WEST),
+    #     "Reis": Position(Point(69, 69), planet.Direction.SOUTH),
+    #     "Gromit-M1": Position(Point(-1, -2), planet.Direction.NORTH),
+    #     "Gromit-M2": Position(Point(-1, -2), planet.Direction.NORTH),
+    #     "Gromit-M3": Position(Point(-1, -2), planet.Direction.NORTH),
+    #     "Fassaden-M1": Position(Point(5, 0), planet.Direction.NORTH),
+    #     "Fassaden": Position(Point(5, 0), planet.Direction.NORTH),
+    #     "Ibem": Position(Point(-1, 0), planet.Direction.NORTh),
+    #     "Mebi": Position(Point(-1, 0), planet.Direction.NORTH),
+    #     "Mebi-T20": Position(Point(-1, 0), planet.Direction.NORTH),
+    #     "Kuehlelement": Position(Point(-14, -3), planet.Direction.EAST),
+    #     "Boseman": Position(Point(6, 5), planet.Direction.SOUTH),
+    #     "Anin": Position(Point(15, 2), planet.Direction.NORTH),
+    #     "Nailik": Position(Point(17, 2), planet.Direction.NORTH),
+    #     "Leinad": Position(Point(13, 2), planet.Direction.WEST),
+    #
+    # }
 
     def test_message_ready(self):
         """
         This test should check the syntax of the message type "ready"
         """
         self.communication.send_ready()
-        confirmation_message = self.communication.get_first_response_by_type("syntax")["payload"] # from "explorer/229"
+        confirmation_message = self.communication.get_first_response_by_type("syntax")["payload"]  # from "explorer/229"
         print("Confirmation message: ", confirmation_message)
 
         # self.communication.client.publish(self.communication.topic, json.dumps(ready_msg)) # publish it to "comtest/229"
@@ -102,7 +102,7 @@ class TestRoboLabCommunication(unittest.TestCase):
         # time.sleep(3)
         self.communication.send_path(start_position, end_position, is_blocked)
 
-    # client_message = self.communication.get_first_response_by_type("path")
+        # client_message = self.communication.get_first_response_by_type("path")
         # self.communication.client.publish(self.dbg_topic, json.dumps(client_message))
         confirm_msg = self.communication.get_first_response_by_type("syntax")["payload"]
         print("Confirmation message ", confirm_msg)
@@ -125,13 +125,29 @@ class TestRoboLabCommunication(unittest.TestCase):
         """
         This test should check the syntax of the message type "pathSelect"
         """
-        self.fail('implement me!')
+        position = Position(Point(2, 3), planet.Direction.WEST)
+        self.communication.send_path_select(position)
+        confirmation_payload = self.communication.get_first_response_by_type("syntax")["payload"]
+        print(confirmation_payload)
+        self.assertEqual(self.correct, confirmation_payload["message"], "There was a syntax failure")
 
     def test_message_complete(self):
         """
         This test should check the syntax of the message type "explorationCompleted" or "targetReached"
         """
-        self.fail('implement me!')
+        self.communication.send_exploration_completed("Exploration completed")
+        confirmation_payload = self.communication.get_first_response_by_type("syntax")["payload"]
+        self.assertEqual(self.correct, confirmation_payload["message"])
+        print(confirmation_payload)
+
+    def test_message_target_reached(self):
+        """
+        This test should check the syntax of the message type "explorationCompleted" or "targetReached"
+        """
+        self.communication.send_target_reached("Target reached")
+        confirmation_payload = self.communication.get_first_response_by_type("syntax")["payload"]
+        print(confirmation_payload)
+        self.assertEqual(self.correct, confirmation_payload["message"])
 
 
 if __name__ == "__main__":
