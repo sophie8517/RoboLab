@@ -50,7 +50,7 @@ class Communication:
     thereby solve the task according to the specifications
     """
 
-    def __init__(self, mqtt_client: mqtt.Client, logger: logging.Logger) -> None:
+    def __init__(self, mqtt_client: mqtt.Client, logger: logging.Logger, debug_mode=False) -> None:
         """
         Initializes communication module, connect to server, subscribe, etc.
         :param mqtt_client: paho.mqtt.client.Client
@@ -72,6 +72,7 @@ class Communication:
 
         self.logger = logger
         self.message_list = []
+        self.debug_mode= debug_mode
 
     # DO NOT EDIT THE METHOD SIGNATURE
     def on_message(self, client: mqtt.Client, data, message):
@@ -86,9 +87,10 @@ class Communication:
         self.logger.debug(json.dumps(payload, indent=2))
         # YOUR CODE FOLLOWS (remove pass, please!)
 
-        if payload["from"] != "server":
-            print("Skip, not from server")
-            return
+        if not self.debug_mode:
+            if payload["from"] != "server":
+                print("Skip, not from server")
+                return
 
         if not payload["type"]:
             print("Error, this message has no type")
@@ -134,6 +136,8 @@ class Communication:
 
     @property
     def planet_topic(self):
+        if self.debug_mode:
+            return self.topic
         if not self.planet:
             raise Exception("No planet name")
         return f"planet/{self.planet}/{self.group}"
@@ -171,6 +175,8 @@ class Communication:
 
         time.sleep(1)
 
+        if self.debug_mode:
+            return None
         response = self.get_first_response_by_type("planet")
 
         payload = response["payload"]
@@ -201,6 +207,8 @@ class Communication:
         self.send_message(self.planet_topic, message)
 
         time.sleep(1)
+        if self.debug_mode:
+            return None
 
         response = self.get_first_response_by_type("path")
 
@@ -216,7 +224,7 @@ class Communication:
         path_weight = payload["pathWeight"]
         return SendPathResponse(start_position_response, end_position_response, path_blocked, path_weight)
 
-    def send_path_select(self, position: Position) -> Direction:
+    def send_path_select(self, position: Position) -> Optional[Direction]:
         message = {
             "from": "client",
             "type": "pathSelect",
@@ -226,13 +234,15 @@ class Communication:
                 "startDirection": position.direction
             }
         }
-        self.client.publish(self.planet_topic, message)
+        self.send_message(self.planet_topic, message)
 
         time.sleep(1)
 
         response = self.get_first_response_by_type("pathSelect")
+        if response:
+            return Direction(response["payload"]["startDirection"])
 
-        return Direction(response["payload"]["startDirection"])
+        return None
 
     def send_target_reached(self, text: str) -> None:
         message = {
