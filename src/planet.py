@@ -50,6 +50,7 @@ class Planet:
         """ Initializes the data structure """
         self.paths = {}
         self.name = str
+        self.undiscovered = {}
 
 
     def add_path(self, start: Tuple[Tuple[int, int], Direction], target: Tuple[Tuple[int, int], Direction],
@@ -92,7 +93,16 @@ class Planet:
         self.add_path(start_tuple, target_tuple, weight)
 
 
+    def undiscovered_paths(self, point: Point, directions: list[Direction]):
+        this_point = (point.x, point.y)
+        for d in directions:
+            for k in list(self.paths[this_point].keys()):
+                if d == k:
+                    directions.remove(k)
+        self.undiscovered[this_point] = directions
 
+    def get_undiscovered_paths(self):
+        return self.undiscovered
 
 
     def get_paths(self) -> Dict[Tuple[int, int], Dict[Direction, Tuple[Tuple[int, int], Direction, Weight]]]:
@@ -123,7 +133,7 @@ class Planet:
         shortest_path = self.shortest_path(start, target)
         for elem in shortest_path:
             result.append(Position(Point(elem[0][0]), elem[1]))
-            
+
         return result
 
     def shortest_path(self, start: Tuple[int, int], target: Tuple[int, int]) -> Union[None, List[Tuple[Tuple[int, int], Direction]]]:
