@@ -13,6 +13,7 @@ from odometry import Odometry
 from planet import Direction, Position, Planet
 from sensors import Sensors, SquareColor, Color
 from server import DebugServer
+from smart_discovery import SmartDiscovery
 
 
 @dataclass
@@ -183,10 +184,18 @@ class Movement:
         self.communication.client.subscribe(f"planet/{self.planet.name}/229")
         self.communication.planet = self.planet.name
         self.position = ready_response.start_position
+        self.discovery = SmartDiscovery(self.position, self.planet)
         print(f"Planet Name: {self.planet.name}")
         print(f"{self.position}")
 
-        self.scan_ways()
+        possible_paths = self.scan_ways()
+        possible_paths_absolute = []
+        for i in possible_paths:
+            possible_paths_absolute.append(Direction((i + self.position.direction) % 360))
+        #self.discovery.add_possible_directions(self.possible_paths)
+        self.planet.undiscovered_paths(self.position.point, possible_paths_absolute)
+        self.paths_list = self.discovery.get_next_direction()
+
 
         while True:
             follow_line_result = self.follow_line(speed=100)
@@ -208,27 +217,46 @@ class Movement:
             self.position.direction = Direction((self.position.direction + follow_line_result.relative_direction) % 360)
 
             print(f"{self.position}")
+            self.discovery.position = self.position
 
             send_path_response = self.communication.send_path(old_position, self.position.turned(),
                                                               follow_line_result.path_blocked)
             self.planet.add_path_points(send_path_response.start_position, send_path_response.end_position,
                                         send_path_response.path_weight)
 
+            self.planet.remove_undiscovered_paths(send_path_response.start_position.point, send_path_response.start_position.direction)
+            self.planet.remove_undiscovered_paths(send_path_response.end_position.point, send_path_response.end_position.direction)
+
             self.move_forward(4)
 
             res_scan_ways = self.scan_ways()
+            res_scan_ways_absolute = []
+            for i in res_scan_ways:
+                res_scan_ways_absolute.append(Direction((i + self.position.direction) % 360))
+
+            self.planet.undiscovered_paths(self.position.point, res_scan_ways_absolute)
+
+            selected_direction = 0
 
             # TODO smart path selection
-            selected_direction_relative = res_scan_ways[0]
+            if self.paths_list == []:
+                self.paths_list = self.discovery.get_next_direction()
+                selected_direction = self.paths_list[0].direction
+            else:
+                selected_direction = self.paths_list[0].direction
 
-            selected_direction_absolute = Direction((selected_direction_relative + self.position.direction) % 360)
-            selected_position = Position(self.position.point, selected_direction_absolute)
+
+
+
+
+            #selected_direction_absolute = Direction((selected_direction_relative + self.position.direction) % 360)
+            selected_position = Position(self.position.point, selected_direction)
             send_path_select_response = self.communication.send_path_select(selected_position)
             if send_path_select_response:
                 print(f"Better direction form mothership: {send_path_select_response}")
                 self.turn_to_way_absolute(send_path_select_response)
             else:
-                self.turn_to_way_relative(selected_direction_relative)
+                self.turn_to_way_absolute(selected_direction)
 
     def main(self):
         while True:
