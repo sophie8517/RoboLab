@@ -1,5 +1,6 @@
 import time
 import traceback
+
 from copy import deepcopy
 from dataclasses import dataclass
 import socket
@@ -45,21 +46,40 @@ class Movement:
         self.position: Position
 
     def turn(self, angle: int) -> None:
-        # print(f"Tun {angle} degrees...")
+        # print(f"Turn {angle} degrees...")
         turn_left = angle < 0
         # 19 sec -> 360 degree
         if turn_left:
-            self.motor_right.speed_sp = 50
-            self.motor_left.speed_sp = -50
+            self.motor_right.speed_sp = 100
+            self.motor_left.speed_sp = -100
         else:  # turn right
-            self.motor_right.speed_sp = -50
-            self.motor_left.speed_sp = 50
+            self.motor_right.speed_sp = -100
+            self.motor_left.speed_sp = 100
         self.motor_right.command = "run-forever"
         self.motor_left.command = "run-forever"
-        time.sleep((19 / 360) * abs(angle))
+        time.sleep((9.5 / 360) * abs(angle)) # 9.5, 9.445, 9.45, 9.502
         self.motor_right.stop()
         self.motor_left.stop()
         # print("Turned")
+
+    def test(self):
+        t = time.perf_counter()
+        while True:
+            try:
+                self.motor_right.speed_sp = -100
+                self.motor_left.speed_sp = 100
+                self.motor_right.command = "run-forever"
+                self.motor_left.command = "run-forever"
+            except KeyboardInterrupt:
+                t2 = time.perf_counter()
+                break
+
+        self.motor_left.stop()
+        self.motor_right.stop()
+        t3 = t2 - t
+        print(f'difference: {t3}')
+
+
 
     def move_forward(self, time_sec: int, speed: int = 50) -> None:
         # print(f"Move forward: time_sec:{time_sec}, speed={speed}...")
@@ -114,8 +134,8 @@ class Movement:
         total_sleep = (19 / 360) * angle
         has_path = False
 
-        self.motor_right.speed_sp = -50
-        self.motor_left.speed_sp = 50
+        self.motor_right.speed_sp = -80
+        self.motor_left.speed_sp = 80
         self.motor_right.command = "run-forever"
         self.motor_left.command = "run-forever"
 
@@ -177,7 +197,13 @@ class Movement:
 
         self.follow_line(speed=80)
         self.move_forward(4)
+        #self.test()
+        x = int(input("grad: "))
+        while not(x == 1000):
+            self.turn(x)
+            x = int(input("grad: "))
 
+        '''
         print("Send ready message")
         ready_response = self.communication.send_ready()
         self.planet.name = ready_response.planet_name
@@ -195,7 +221,7 @@ class Movement:
         #self.discovery.add_possible_directions(self.possible_paths)
         self.planet.undiscovered_paths(self.position.point, possible_paths_absolute)
         self.paths_list = self.discovery.get_next_direction()
-
+        
 
         while True:
             follow_line_result = self.follow_line(speed=100)
@@ -263,6 +289,12 @@ class Movement:
             else:
                 print(f'selected direction: {selected_direction}')
                 self.turn_to_way_absolute(selected_direction)
+
+        '''
+
+
+        #res_scan_ways = self.scan_ways()
+
 
     def main(self):
         while True:
