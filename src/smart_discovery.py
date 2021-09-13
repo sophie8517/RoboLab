@@ -12,7 +12,6 @@ class DiscoveryComplete(Exception):
 class SmartDiscovery:
     def __init__(self, position: Position, planet: Planet):
         self.position = position
-        self.planet_map = planet.get_paths()
         self.planet = planet
 
         self.undiscovered_paths: list[Position] = []
@@ -27,9 +26,7 @@ class SmartDiscovery:
         return directions
 
     def get_next_direction(self) -> list[Position]:
-        #return Direction.NORTH
-        # raise DiscoveryComplete("Complete")
-        #at_point = []
+
         this_point = (self.position.point.x, self.position.point.y)
         result = []
         found = 0
@@ -46,7 +43,7 @@ class SmartDiscovery:
 
         if un_discovered == []:
             paths_list = []
-            for node in list(self.planet.keys()):
+            for node in list(self.planet.get_paths().keys()):
                 directions = self.find_undiscovered_path(Point(node[0], node[1]))
                 if not(directions == []):
                     paths_list.append((node, directions))
@@ -72,7 +69,8 @@ class SmartDiscovery:
             found = 1
 
         if(found == 0):
-            raise DiscoveryComplete("Complete")
+            #raise DiscoveryComplete("Complete")
+            result = []
 
         return result
 
