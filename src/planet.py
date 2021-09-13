@@ -124,7 +124,6 @@ class Planet:
         for elem in shortest_path:
             result.append(Position(Point(elem[0][0]), elem[1]))
             
-
         return result
 
     def shortest_path(self, start: Tuple[int, int], target: Tuple[int, int]) -> Union[None, List[Tuple[Tuple[int, int], Direction]]]:
