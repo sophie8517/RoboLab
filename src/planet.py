@@ -106,9 +106,10 @@ class Planet:
 
     def remove_undiscovered_paths(self, point: Point, direction: Direction):
         this_point = (point.x, point.y)
-        liste = self.undiscovered[this_point]
-        liste.remove(direction)
-        self.undiscovered[this_point] = liste
+        if this_point in list(self.undiscovered.keys()):
+            liste = self.undiscovered[this_point]
+            liste.remove(direction)
+            self.undiscovered[this_point] = liste
 
     def get_paths(self) -> Dict[Tuple[int, int], Dict[Direction, Tuple[Tuple[int, int], Direction, Weight]]]:
         """
