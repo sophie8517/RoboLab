@@ -35,8 +35,8 @@ class Movement:
         self.motor_left.reset()
         self.motor_left.stop_action = "brake"
         self.sound = ev3.Sound()
-        self.sensors = Sensors()
 
+        self.sensors = Sensors()
         self.debug_server = DebugServer(self.motor_left, self.motor_right)
         self.calibration = Calibration(self.motor_left, self.motor_right, self.sensors)
         self.planet = Planet()
@@ -163,6 +163,9 @@ class Movement:
         return absolute_directions
 
     def turn_to_way_relative(self, direction_relative: Direction) -> None:
+        if direction_relative == Direction.NORTH:
+            return
+
         self.position.direction = Direction((self.position.direction + direction_relative) % 360)
 
         angle = int(direction_relative)
@@ -179,17 +182,20 @@ class Movement:
         time.sleep(0.5)
 
     def turn_to_way_absolute(self, direction_absolute: Direction) -> None:
-        direction_relative = Direction((direction_absolute - self.position.direction) % 360)
+        direction_relative = Direction((self.position.direction + direction_absolute) % 360)
         self.turn_to_way_relative(direction_relative)
 
-    def main_loop(self) -> None:
+    def initial_start(self) -> None:
         self.calibration.calibrate_colors()
 
         self.follow_line()
         self.move_forward(4)
 
-        print("Send ready message")
         ready_response = self.communication.send_ready()
+
+        if not ready_response:
+            raise Exception("No response from mothership (ready message sent)")
+
         self.planet.name = ready_response.planet_name
         self.communication.client.subscribe(f"planet/{self.planet.name}/229")
         self.communication.planet = self.planet.name
@@ -202,61 +208,76 @@ class Movement:
         # don't add start line, which would go into the void
         possible_directions_absolute.remove(self.position.direction.turned())
 
+        if not possible_directions_absolute:
+            raise Exception("No possible directions")
+
         self.smart_discovery.add_possible_directions(self.position.point, possible_directions_absolute)
 
-        while True:
-            follow_line_result = self.follow_line(speed=100)
+        self.turn_to_way_absolute(possible_directions_absolute[0])
 
-            old_position = deepcopy(self.position)
-            if self.position.direction == Direction.NORTH:
-                self.position.point.x += follow_line_result.dx
-                self.position.point.y += follow_line_result.dy
-            elif self.position.direction == Direction.SOUTH:
-                self.position.point.x -= follow_line_result.dx
-                self.position.point.y -= follow_line_result.dy
-            elif self.position.direction == Direction.WEST:
-                self.position.point.x -= follow_line_result.dy
-                self.position.point.y += follow_line_result.dx
-            else:
-                self.position.point.x += follow_line_result.dy
-                self.position.point.y -= follow_line_result.dx
+    def main_loop(self) -> bool:
+        follow_line_result = self.follow_line(speed=100)
 
-            self.position.direction = Direction((self.position.direction + follow_line_result.relative_direction) % 360)
+        old_position = deepcopy(self.position)
+        if self.position.direction == Direction.NORTH:
+            self.position.point.x += follow_line_result.dx
+            self.position.point.y += follow_line_result.dy
+        elif self.position.direction == Direction.SOUTH:
+            self.position.point.x -= follow_line_result.dx
+            self.position.point.y -= follow_line_result.dy
+        elif self.position.direction == Direction.WEST:
+            self.position.point.x -= follow_line_result.dy
+            self.position.point.y += follow_line_result.dx
+        else:
+            self.position.point.x += follow_line_result.dy
+            self.position.point.y -= follow_line_result.dx
 
-            print(f"{self.position}")
-            self.smart_discovery.position = self.position
+        self.position.direction = Direction((self.position.direction + follow_line_result.relative_direction) % 360)
 
-            path_response = self.communication.send_path(old_position, self.position.turned(),
-                                                         follow_line_result.path_blocked)
-            self.planet.add_path_points(path_response.start_position, path_response.end_position,
-                                        path_response.path_weight)
-            self.smart_discovery.remove_direction(path_response.start_position.point,
-                                                  path_response.start_position.direction)
-            self.smart_discovery.remove_direction(path_response.end_position.point,
-                                                  path_response.end_position.direction)
+        print(f"{old_position} ---> {self.position}")
 
-            self.move_forward(4)
+        path_response = self.communication.send_path(old_position, self.position.turned(),
+                                                     follow_line_result.path_blocked)
 
-            res_scan_ways = self.scan_ways_relative()
-            res_scan_ways_absolute = []
-            for possible_direction_relative in res_scan_ways:
-                res_scan_ways_absolute.append(Direction((possible_direction_relative + self.position.direction) % 360))
+        if path_response.start_position != old_position or path_response.end_position != self.position.turned():
+            print("Odometry was wrong -> got correction from mothership:")
+            print("Start", path_response.start_position)
+            print("End", path_response.end_position)
+            self.position = path_response.end_position.turned()
 
-            selected_direction = self.smart_discovery.next_direction(self.position.point)
+        self.planet.add_path_points(path_response.start_position, path_response.end_position,
+                                    path_response.path_weight)
+        self.smart_discovery.remove_direction(path_response.start_position.point,
+                                              path_response.start_position.direction)
+        self.smart_discovery.remove_direction(path_response.end_position.point,
+                                              path_response.end_position.direction)
 
-            selected_position = Position(self.position.point, selected_direction)
-            send_path_select_response = self.communication.send_path_select(selected_position)
-            if send_path_select_response:
-                print(f"Better direction form mothership: {send_path_select_response}")
-                self.turn_to_way_absolute(send_path_select_response)
-            else:
-                print(f'selected direction: {selected_direction}')
-                self.turn_to_way_absolute(selected_direction)
+        self.move_forward(4)
+
+        res_scan_ways_absolute = self.scan_ways_absolute()
+        self.smart_discovery.add_possible_directions(self.position.point, res_scan_ways_absolute)
+
+        selected_direction = self.smart_discovery.next_direction(self.position.point)
+
+        selected_position = Position(self.position.point, selected_direction)
+        send_path_select_response = self.communication.send_path_select(selected_position)
+        if send_path_select_response:
+            print(f"Better direction form mothership: {send_path_select_response}")
+            # TODO check if path is blocked, mothership may send an impossible direction
+            self.turn_to_way_absolute(send_path_select_response)
+        else:
+            print(f'selected direction: {selected_direction}')
+            self.turn_to_way_absolute(selected_direction)
+
+        return False
 
     def main(self) -> None:
         while True:
             try:
-                self.main_loop()
+                self.initial_start()
+                done = False
+                while not done:
+                    done = self.main_loop()
                 print("---- DONE ----")
                 self.debug_server.start()
 

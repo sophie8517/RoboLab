@@ -19,7 +19,7 @@ class Direction(IntEnum):
         return Direction((self + 180) % 360)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Point:
     x: int
     y: int

@@ -29,7 +29,9 @@ class SmartDiscovery:
             path = self.planet.shortest_path_points(point, point_with_undiscovered_paths)
             if path is None:
                 continue
+            print("Path", path)
             length = self.planet.length_of_path(path)
+            print("Length", length)
             possible_next_ways.append((length, path[0].direction))
 
         # sort all paths
@@ -38,7 +40,7 @@ class SmartDiscovery:
         return possible_next_ways[0][1]
 
     def remove_direction(self, point: Point, direction: Direction) -> None:
-        if not self.undiscovered_paths[point]:
+        if point not in self.undiscovered_paths:
             print("Cant remove direction of non existing point")
             return
 
