@@ -306,5 +306,12 @@ class Planet:
 
         return position_list
 
-    def length_of_path(self, path: List[Position]) -> int:
-        return 0
+    def length_of_path(self, path:List[Position]) -> int:
+
+        length = 0
+        for position in path:
+            if self.paths[(position.point.x, position.point.y)][position.direction][2] == -1:
+                return -1
+            else:
+                length += self.paths[(position.point.x, position.point.y)][position.direction][2]
+        return length
