@@ -41,7 +41,7 @@ class Movement:
         self.planet = Planet()
         self.odometry = Odometry()
 
-        self.position:  Position
+        self.position: Position
 
     def turn(self, angle: int) -> None:
         # print(f"Tun {angle} degrees...")
@@ -61,7 +61,7 @@ class Movement:
         # print("Turned")
 
     def move_forward(self, time_sec: int, speed: int = 50) -> None:
-        print(f"Move forward: time_sec:{time_sec}, speed={speed}...")
+        # print(f"Move forward: time_sec:{time_sec}, speed={speed}...")
         self.motor_right.speed_sp = speed
         self.motor_left.speed_sp = speed
 
@@ -72,14 +72,14 @@ class Movement:
 
         self.motor_right.stop()
         self.motor_left.stop()
-        print("Moved forward")
+        # print("Moved forward")
 
     def follow_line(self, speed: int = 80) -> FollowLineResult:
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
 
-        print("Following line...")
+        # print("Following line...")
         barrier_on_path = False
         while True:
             current_brightness = self.sensors.get_color().brightness()
@@ -104,7 +104,7 @@ class Movement:
                 odometry_result = self.odometry.calc(motor_ticks)
                 result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
                                           barrier_on_path)
-                print(f"Followed line with result: {result}")
+                print(f"{result}")
                 return result
 
     def turn_and_scan(self) -> bool:
@@ -130,7 +130,7 @@ class Movement:
         return has_path
 
     def scan_ways(self) -> List[Direction]:
-        print("Scanning ways...")
+        # print("Scanning ways...")
         self.turn(-45)
         result_list: List[Direction] = []
 
@@ -148,12 +148,13 @@ class Movement:
 
         self.turn(45)
 
-        print(f"Scanned ways, result: {result_list}")
+        # print(f"Scanned ways, result: {result_list}")
         return result_list
 
-    def turn_to_way(self, new_direc):
+    def turn_to_way_relative(self, direction: Direction) -> None:
+        self.position.direction = Direction((self.position.direction + direction) % 360)
 
-        angle = int(new_direc)
+        angle = int(direction)
         self.turn(angle - 15)
 
         while abs(self.sensors.get_color().brightness() - self.sensors.black.brightness()) > 50:
@@ -166,35 +167,50 @@ class Movement:
         self.motor_right.stop()
         time.sleep(0.5)
 
+    def turn_to_way_absolute(self, direction_absolute: Direction) -> None:
+        direction_relative = Direction((direction_absolute - self.position.direction) % 360)
+        self.turn_to_way_relative(direction_relative)
+
     def main_loop(self):
         self.calibration.calibrate_colors()
 
         self.follow_line(speed=80)
         self.move_forward(4)
 
+        print("Send ready message")
         ready_response = self.communication.send_ready()
         self.planet.name = ready_response.planet_name
         self.communication.client.subscribe(f"planet/{self.planet.name}/229")
         self.communication.planet = self.planet.name
         self.position = ready_response.start_position
-        print("Planet Name: ", self.planet.name)
-        print("Position: ", self.position)
+        print(f"Planet Name: {self.planet.name}")
+        print(f"{self.position}")
+
+        self.scan_ways()
 
         while True:
-            follow_line_result = self.follow_line(speed=80)
+            follow_line_result = self.follow_line(speed=100)
 
             old_position = deepcopy(self.position)
-            self.position.point.x += follow_line_result.dx
-            self.position.point.y += follow_line_result.dy
-            self.position.direction = (self.position.direction + follow_line_result.relative_direction) % 360
-
-            if follow_line_result.path_blocked:
-                weight = -1
+            if self.position.direction == Direction.NORTH:
+                self.position.point.x += follow_line_result.dx
+                self.position.point.y += follow_line_result.dy
+            elif self.position.direction == Direction.SOUTH:
+                self.position.point.x -= follow_line_result.dx
+                self.position.point.y -= follow_line_result.dy
+            elif self.position.direction == Direction.WEST:
+                self.position.point.x -= follow_line_result.dy
+                self.position.point.y += follow_line_result.dx
             else:
-                weight = 1
+                self.position.point.x += follow_line_result.dy
+                self.position.point.y -= follow_line_result.dx
+
+            self.position.direction = Direction((self.position.direction + follow_line_result.relative_direction) % 360)
+
+            print(f"{self.position}")
+
             send_path_response = self.communication.send_path(old_position, self.position.turned(),
                                                               follow_line_result.path_blocked)
-            print("Send path response: ", send_path_response)
             self.planet.add_path_points(send_path_response.start_position, send_path_response.end_position,
                                         send_path_response.path_weight)
 
@@ -204,25 +220,27 @@ class Movement:
 
             # TODO smart path selection
             selected_direction_relative = res_scan_ways[0]
+
             selected_direction_absolute = Direction((selected_direction_relative + self.position.direction) % 360)
             selected_position = Position(self.position.point, selected_direction_absolute)
             send_path_select_response = self.communication.send_path_select(selected_position)
-            print("Path select response: ", send_path_select_response)
             if send_path_select_response:
-                self.turn_to_way()
+                print(f"Better direction form mothership: {send_path_select_response}")
+                self.turn_to_way_absolute(send_path_select_response)
             else:
-                self.turn_to_way(selected_direction_relative)
+                self.turn_to_way_relative(selected_direction_relative)
 
     def main(self):
         while True:
             try:
                 self.main_loop()
-                print("done")
+                print("---- DONE ----")
                 self.debug_server.start()
 
             except KeyboardInterrupt:
-                print("keyyyy")
+                print("---- KEYBOARD INTERRUPT ----")
                 self.debug_server.start()
             except Exception as e:
+                print("---- ERROR ----")
                 traceback.print_exc()
                 self.debug_server.start()
