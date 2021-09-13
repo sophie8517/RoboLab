@@ -123,6 +123,7 @@ class Planet:
         shortest_path = self.shortest_path(start, target)
         for elem in shortest_path:
             result.append(Position(Point(elem[0][0]), elem[1]))
+            
 
         return result
 
