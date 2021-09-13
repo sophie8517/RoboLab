@@ -95,11 +95,14 @@ class Planet:
 
     def undiscovered_paths(self, point: Point, directions: list[Direction]):
         this_point = (point.x, point.y)
-        for d in directions:
-            for k in list(self.paths[this_point].keys()):
-                if d == k:
-                    directions.remove(k)
-        self.undiscovered[this_point] = directions
+        if this_point in list(self.paths.keys()):
+            for d in directions:
+                for k in list(self.paths[this_point].keys()):
+                    if d == k:
+                        directions.remove(k)
+            self.undiscovered[this_point] = directions
+        else:
+            self.undiscovered[this_point] = directions
 
     def get_undiscovered_paths(self):
         return self.undiscovered
