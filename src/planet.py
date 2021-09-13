@@ -26,6 +26,10 @@ class Position:
     point: Point
     direction: Direction
 
+    def turned(self):
+        return Position(self.point, Direction((self.direction + 180) % 360))
+
+
 Weight = int
 """
 Weight of a given path (received from the server)
@@ -81,8 +85,10 @@ class Planet:
         else:
             self.paths.update({target_key:target_value})
 
-
-
+    def add_path_points(self, start: Position, end: Position, weight: int):
+        start_tuple = ((start.point.x, start.point.y), start.direction)
+        target_tuple = ((end.point.x, end.point.y), end.direction)
+        self.add_path(start_tuple, target_tuple, weight)
 
 
     def get_paths(self) -> Dict[Tuple[int, int], Dict[Direction, Tuple[Tuple[int, int], Direction, Weight]]]:
