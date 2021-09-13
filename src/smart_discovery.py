@@ -22,25 +22,24 @@ class SmartDiscovery:
             self.undiscovered_paths.append(Position(self.position.point, directions[i]))
 
     def find_undiscovered_path(self, point: Point) -> list[Direction]:
-        directions = [Direction.SOUTH,Direction.NORTH, Direction.WEST, Direction.EAST]
-        p =(point.x, point.y)
-        keys = list(self.planet[p].keys())
-        for k in keys:
-            directions.remove(k)
-
+        this_point = (point.x, point.y)
+        directions = self.planet.get_undiscovered_paths()[this_point]
         return directions
 
     def get_next_direction(self) -> list[Position]:
         #return Direction.NORTH
         # raise DiscoveryComplete("Complete")
-        at_point = []
+        #at_point = []
         this_point = (self.position.point.x, self.position.point.y)
         result = []
         found = 0
 
+        '''
         for i in self.undiscovered_paths:
             if i.point == self.position.point:
                 at_point.append(i.direction)
+                
+        '''
 
         un_discovered = self.find_undiscovered_path(self.position.point)
 
