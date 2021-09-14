@@ -50,24 +50,26 @@ class Movement:
         turn_left = angle < 0
         # 19 sec -> 360 degree
         if turn_left:
-            self.motor_right.speed_sp = 100
-            self.motor_left.speed_sp = -100
+            self.motor_right.speed_sp = 200
+            self.motor_left.speed_sp = -200
         else:  # turn right
-            self.motor_right.speed_sp = -100
-            self.motor_left.speed_sp = 100
+            self.motor_right.speed_sp = -200
+            self.motor_left.speed_sp = 200
         self.motor_right.command = "run-forever"
         self.motor_left.command = "run-forever"
-        time.sleep((9.5 / 360) * abs(angle)) # 9.5, 9.445, 9.45, 9.502
+        time.sleep((4.76698 / 360) * abs(angle)) # 9.5, 9.445, 9.45, 9.502,  9.4426
+        #4.780062796999118, 4.761925176000659, 4,758945233999839
+        #mittelwert = 4.766977735666539
         self.motor_right.stop()
         self.motor_left.stop()
         # print("Turned")
 
-    def test(self):
+    def test(self) -> float:
         t = time.perf_counter()
         while True:
             try:
-                self.motor_right.speed_sp = -100
-                self.motor_left.speed_sp = 100
+                self.motor_right.speed_sp = -200
+                self.motor_left.speed_sp = 200
                 self.motor_right.command = "run-forever"
                 self.motor_left.command = "run-forever"
             except KeyboardInterrupt:
@@ -78,6 +80,7 @@ class Movement:
         self.motor_right.stop()
         t3 = t2 - t
         print(f'difference: {t3}')
+        return t3
 
 
 
@@ -99,12 +102,15 @@ class Movement:
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
+        turns = []
 
         # print("Following line...")
         barrier_on_path = False
         while True:
             current_brightness = self.sensors.get_color().brightness()
             turn = 0.5 * (current_brightness - self.sensors.black_white_diff)
+            turns.append(turn)
+
             self.motor_right.speed_sp = speed - turn
             self.motor_left.speed_sp = speed + turn
             self.motor_right.command = "run-forever"
@@ -128,19 +134,20 @@ class Movement:
                 print(f"{result}")
                 return result
 
+
     def turn_and_scan(self) -> bool:
-        # print("Turn and scan...")
+        print("Turn and scan...")
         angle = 85
-        total_sleep = (19 / 360) * angle
+        total_sleep = (4.76698 / 360) * angle
         has_path = False
 
-        self.motor_right.speed_sp = -80
-        self.motor_left.speed_sp = 80
+        self.motor_right.speed_sp = -200
+        self.motor_left.speed_sp = 200
         self.motor_right.command = "run-forever"
         self.motor_left.command = "run-forever"
 
-        for i in range(100):
-            time.sleep(total_sleep / 100)
+        for i in range(25):
+            time.sleep(total_sleep / 25)
             if abs(self.sensors.get_color().brightness() - self.sensors.black.brightness()) < 50:
                 has_path = True
 
@@ -151,7 +158,7 @@ class Movement:
         return has_path
 
     def scan_ways(self) -> List[Direction]:
-        # print("Scanning ways...")
+        print("Scanning ways...")
         self.turn(-45)
         result_list: List[Direction] = []
 
@@ -169,14 +176,23 @@ class Movement:
 
         self.turn(45)
 
-        # print(f"Scanned ways, result: {result_list}")
+        print(f'Scanned ways, result: {result_list}')
         return result_list
 
     def turn_to_way_relative(self, direction: Direction) -> None:
-        self.position.direction = Direction((self.position.direction + direction) % 360)
+        #self.position.direction = Direction((self.position.direction + direction) % 360)
 
         angle = int(direction)
-        self.turn(angle - 15)
+
+
+        if angle > 180:
+
+            angle = angle - 20
+            angle = -(360 - angle)
+        else:
+            angle = angle - 15
+
+        self.turn(angle)
 
         while abs(self.sensors.get_color().brightness() - self.sensors.black.brightness()) > 50:
             self.motor_right.speed_sp = -50
@@ -193,17 +209,47 @@ class Movement:
         self.turn_to_way_relative(direction_relative)
 
     def main_loop(self):
+
+        #c = self.sensors.test()
+        #print(c)
         self.calibration.calibrate_colors()
+        self.follow_line()
+
+        #self.follow_line(speed=80)
+        #self.move_forward(4)
+
+        values = []
+        y = 'n'
+        while y == 'y':
+            #self.follow_line(speed=80)
+            #self.move_forward(4)
+            #v = self.test()
+            #values.append(v)
+            x = int(input("grad: "))
+            self.turn(x)
+            y = input("nochmal?: ")
+        print(values)
+
+
+
+
+        x = 'n'
+        while x == 'y':
+            self.follow_line(speed=80)
+            self.move_forward(4)
+            g = int(input("grad: "))
+            d = Direction(g)
+            self.turn_to_way_relative(d)
+            x = input("nochmal[y/n]?: ")
+            
 
         self.follow_line(speed=80)
         self.move_forward(4)
-        #self.test()
-        x = int(input("grad: "))
-        while not(x == 1000):
-            self.turn(x)
-            x = int(input("grad: "))
+        self.scan_ways()
+        self.follow_line(speed=80)
 
         '''
+        
         print("Send ready message")
         ready_response = self.communication.send_ready()
         self.planet.name = ready_response.planet_name
