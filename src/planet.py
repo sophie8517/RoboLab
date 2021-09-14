@@ -299,21 +299,35 @@ class Planet:
         for num in range(len(node_list)):
             if num == len(node_list) - 1:
                 last = node_list[len(node_list) - 1]  # node before target node
-                direc = Direction.NORTH
+                
+                direcs = []
                 for kye in list(self.paths[last].keys()):
                     if self.paths[last][kye][0] == target:
-                        direc = kye
-                        break
-                last_elem = (last, direc)
+                        direction = kye
+                        path_weight = self.paths[last][kye][2]
+                        direcs.append((direction, path_weight))
+                        
+                mini = direcs[0][1]
+                last_elem = (last, direcs[0][0])
+                for i in direcs:
+                    if i[1] < mini:
+                        last_elem = (last, i[0])
+
                 output.append(last_elem)
 
             else:
-                dire = Direction.WEST
+                direcs = []
                 for key in self.paths[node_list[num]].keys():
                     if self.paths[node_list[num]][key][0] == node_list[num + 1]:
                         dire = key
-                        break
-                element = (node_list[num], dire)
+                        path_weight = self.paths[node_list[num]][key][2]
+                        direcs.append((dire, path_weight))
+                element = (node_list[num], direcs[0][0])
+                mini = direcs[0][1]
+                for i in direcs:
+                    if i[1] < mini:
+                        element = (node_list[num], i[0])
+
                 output.append(element)
 
         return output
