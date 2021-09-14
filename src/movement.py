@@ -106,7 +106,7 @@ class Movement:
                 odometry_result = self.odometry.calc(motor_ticks)
                 result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
                                           barrier_on_path)
-                print(f"{result}")
+                # print(f"{result}")
                 return result
 
     def turn_and_scan(self) -> bool:
@@ -163,6 +163,7 @@ class Movement:
         return absolute_directions
 
     def turn_to_way_relative(self, direction_relative: Direction) -> None:
+        # print(f"turn_to_way_relative({direction_relative})")
         if direction_relative == Direction.NORTH:
             return
 
@@ -182,7 +183,9 @@ class Movement:
         time.sleep(0.5)
 
     def turn_to_way_absolute(self, direction_absolute: Direction) -> None:
-        direction_relative = Direction((self.position.direction + direction_absolute) % 360)
+        # print(f"turn_to_way_abolute({direction_absolute})")
+        # print(f"Cur direction: {self.position.direction}")
+        direction_relative = Direction((direction_absolute - self.position.direction) % 360)
         self.turn_to_way_relative(direction_relative)
 
     def initial_start(self) -> None:
@@ -254,10 +257,18 @@ class Movement:
 
         self.move_forward(4)
 
-        res_scan_ways_absolute = self.scan_ways_absolute()
-        self.smart_discovery.add_possible_directions(self.position.point, res_scan_ways_absolute)
+        if not self.smart_discovery.was_on_point(self.position.point):
+            res_scan_ways_absolute = self.scan_ways_absolute()
+            try:
+                res_scan_ways_absolute.remove(self.position.direction.turned())
+            except:
+                print("Error???")
+
+            self.smart_discovery.add_possible_directions(self.position.point, res_scan_ways_absolute)
 
         selected_direction = self.smart_discovery.next_direction(self.position.point)
+        if selected_direction is None:
+            return True
 
         selected_position = Position(self.position.point, selected_direction)
         send_path_select_response = self.communication.send_path_select(selected_position)

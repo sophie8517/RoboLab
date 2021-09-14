@@ -148,7 +148,7 @@ class Communication:
             my_message = copy(message)
             self.message_list.remove(my_message)
             return my_message
-        print("No message found")
+        # print("No message found")
         return {}
 
     def get_all_responses_by_type(self, message_type: str) -> list[dict]:
