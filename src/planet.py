@@ -3,7 +3,7 @@
 # Attention: Do not import the ev3dev.ev3 module in this file
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import List, Tuple, Dict, Union
+from typing import List, Tuple, Dict, Union, Optional
 
 
 @unique
@@ -14,8 +14,12 @@ class Direction(IntEnum):
     SOUTH = 180
     WEST = 270
 
+    def turned(self):
+        """turn 180 degree"""
+        return Direction((self + 180) % 360)
 
-@dataclass
+
+@dataclass(unsafe_hash=True)
 class Point:
     x: int
     y: int
@@ -49,9 +53,7 @@ class Planet:
     def __init__(self):
         """ Initializes the data structure """
         self.paths = {}
-        self.name = str
-        self.undiscovered = {}
-
+        self.name = ""
 
     def add_path(self, start: Tuple[Tuple[int, int], Direction], target: Tuple[Tuple[int, int], Direction],
                  weight: int):
@@ -67,7 +69,7 @@ class Planet:
         """
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        #add start to target
+        # add start to target
 
         start_key = start[0]
         start_value = {start[1]: (target[0], target[1], weight)}
@@ -75,44 +77,22 @@ class Planet:
         if start_key in self.paths.keys():
             self.paths[start_key].update(start_value)
         else:
-            self.paths.update({start_key:start_value})
+            self.paths.update({start_key: start_value})
 
-        #add path from target to start
+        # add path from target to start
 
         target_key = target[0]
-        target_value = {target[1]:(start[0], start[1], weight)}
+        target_value = {target[1]: (start[0], start[1], weight)}
 
         if target_key in self.paths.keys():
             self.paths[target_key].update(target_value)
         else:
-            self.paths.update({target_key:target_value})
+            self.paths.update({target_key: target_value})
 
     def add_path_points(self, start: Position, end: Position, weight: int):
         start_tuple = ((start.point.x, start.point.y), start.direction)
         target_tuple = ((end.point.x, end.point.y), end.direction)
         self.add_path(start_tuple, target_tuple, weight)
-
-
-    def undiscovered_paths(self, point: Point, directions: list[Direction]):
-        this_point = (point.x, point.y)
-        if this_point in list(self.paths.keys()):
-            for d in directions:
-                for k in list(self.paths[this_point].keys()):
-                    if d == k:
-                        directions.remove(k)
-            self.undiscovered[this_point] = directions
-        else:
-            self.undiscovered[this_point] = directions
-
-    def get_undiscovered_paths(self):
-        return self.undiscovered
-
-    def remove_undiscovered_paths(self, point: Point, direction: Direction):
-        this_point = (point.x, point.y)
-        if this_point in list(self.undiscovered.keys()):
-            liste = self.undiscovered[this_point]
-            liste.remove(direction)
-            self.undiscovered[this_point] = liste
 
     def get_paths(self) -> Dict[Tuple[int, int], Dict[Direction, Tuple[Tuple[int, int], Direction, Weight]]]:
         """
@@ -137,15 +117,8 @@ class Planet:
         # YOUR CODE FOLLOWS (remove pass, please!)
         return self.paths
 
-    def shortest_path_points(self,start: Tuple[int, int], target: Tuple[int, int]):
-        result = []
-        shortest_path = self.shortest_path(start, target)
-        for elem in shortest_path:
-            result.append(Position(Point(elem[0][0]), elem[1]))
-
-        return result
-
-    def shortest_path(self, start: Tuple[int, int], target: Tuple[int, int]) -> Union[None, List[Tuple[Tuple[int, int], Direction]]]:
+    def shortest_path(self, start: Tuple[int, int], target: Tuple[int, int]) -> Union[
+        None, List[Tuple[Tuple[int, int], Direction]]]:
         """
         Returns a shortest path between two nodes
 
@@ -158,25 +131,25 @@ class Planet:
         """
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        if not(start in self.paths.keys()) or not(target in self.paths.keys()):
+        if not (start in self.paths.keys()) or not (target in self.paths.keys()):
             return None
 
 
-        distance_dict = {} # lists all nodes with their distance to start node
-        predecessors = {} # maps a list of predecessors to a node {this node :[start, ..., this node}
+        distance_dict = {}  # lists all nodes with their distance to start node
+        predecessors = {}  # maps a list of predecessors to a node {this node :[start, ..., this node}
         unvisited = []
         infinity = float("inf")
 
-        #add all nodes to unvisited
-        #initialize all distances with infinity
-        #initialize predecessors as empty list
+        # add all nodes to unvisited
+        # initialize all distances with infinity
+        # initialize predecessors as empty list
 
         for k in list(self.paths.keys()):
             unvisited.append(k)
             distance_dict.update({k: infinity})
             predecessors.update({k: []})
 
-        #start node has distance 0
+        # start node has distance 0
         distance_dict[start] = 0
 
         while target in unvisited:
@@ -184,23 +157,23 @@ class Planet:
             distances = []
 
             for node in unvisited:
-                distances.append(distance_dict[node])  #create a list of all distances
+                distances.append(distance_dict[node])  # create a list of all distances
 
             minimum_distance = min(distances)
 
             if minimum_distance == infinity:
-                return None  #because this node is unreacheable
+                return None  # because this node is unreacheable
             else:
                 for node in unvisited:
                     if distance_dict[node] == minimum_distance:
                         recent_node = node
                         break
-                        #choose the node with the minimum distance as the next node to work with
+                        # choose the node with the minimum distance as the next node to work with
             unvisited.remove(recent_node)
 
-
             for k in list(self.paths[recent_node].values()):
-                if k[0] in unvisited and not(k[2] == -1):  # k[0] is target node, the k[0]'s are the neighbors of the recent node
+                if k[0] in unvisited and not (
+                        k[2] == -1):  # k[0] is target node, the k[0]'s are the neighbors of the recent node
 
                     old_weight = distance_dict[k[0]]
                     new_weight = 0
@@ -210,16 +183,15 @@ class Planet:
                             weights.append(ky[2])
                     part = min(weights)
 
-
-                    new_weight = distance_dict[recent_node] + part  #calculates the distance if you 'go over'
-                                                                    # the recent node
+                    new_weight = distance_dict[recent_node] + part  # calculates the distance if you 'go over'
+                    # the recent node
 
                     if new_weight < old_weight:
                         # update predecessors and distance_dict
                         distance_dict[k[0]] = new_weight
                         predecessors[k[0]] = predecessors[recent_node] + [recent_node]
 
-        #write output
+        # write output
 
         node_list = predecessors[target]  # predecessors of the target node
         output = []
@@ -259,8 +231,28 @@ class Planet:
 
         return output
 
+    def shortest_path_points(self, start: Point, end: Point) -> Optional[List[Position]]:
+        """
+        return None if there is no path
+        return []   if there is start and end is the same???
+        """
+        way_points = self.shortest_path((start.x, start.y), (end.x, end.y))
+        if way_points is None:
+            return None
 
+        position_list: List[Position] = []
+        for way_point in way_points:
+            point = Point(way_point[0][0], way_point[0][1])
+            position_list.append(Position(point, way_point[1]))
 
+        return position_list
 
+    def length_of_path(self, path:List[Position]) -> int:
 
-
+        length = 0
+        for position in path:
+            if self.paths[(position.point.x, position.point.y)][position.direction][2] == -1:
+                return -1
+            else:
+                length += self.paths[(position.point.x, position.point.y)][position.direction][2]
+        return length

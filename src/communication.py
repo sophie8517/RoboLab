@@ -72,7 +72,7 @@ class Communication:
 
         self.logger = logger
         self.message_list = []
-        self.debug_mode= debug_mode
+        self.debug_mode = debug_mode
 
     # DO NOT EDIT THE METHOD SIGNATURE
     def on_message(self, client: mqtt.Client, data, message):
@@ -87,10 +87,9 @@ class Communication:
         self.logger.debug(json.dumps(payload, indent=2))
         # YOUR CODE FOLLOWS (remove pass, please!)
 
-        if not self.debug_mode:
-            if payload["from"] != "server":
-                print("Skip, not from server")
-                return
+        if payload["from"] == "client":
+            # print("Skip, from client")
+            return
 
         if not payload["type"]:
             print("Error, this message has no type")
@@ -149,7 +148,7 @@ class Communication:
             my_message = copy(message)
             self.message_list.remove(my_message)
             return my_message
-        print("No message found")
+        # print("No message found")
         return {}
 
     def get_all_responses_by_type(self, message_type: str) -> list[dict]:
@@ -166,7 +165,7 @@ class Communication:
     # Send to mothership #
     ######################
 
-    def send_ready(self) -> SendReadyResponse:
+    def send_ready(self) -> Optional[SendReadyResponse]:
         message = {
             "from": "client",
             "type": "ready"
@@ -175,9 +174,10 @@ class Communication:
 
         time.sleep(1)
 
-        if self.debug_mode:
-            return None
         response = self.get_first_response_by_type("planet")
+
+        if not response:
+            return None
 
         payload = response["payload"]
 
@@ -185,7 +185,9 @@ class Communication:
         ready_response = SendReadyResponse(payload["planetName"], position)
         return ready_response
 
-    def send_path(self, start_position: Position, end_position: Position, path_blocked: bool) -> SendPathResponse:
+    def send_path(self, start_position: Position, end_position: Position, path_blocked: bool) -> Optional[
+        SendPathResponse]:
+
         if path_blocked:
             path_status = "blocked"
         else:
@@ -207,10 +209,12 @@ class Communication:
         self.send_message(self.planet_topic, message)
 
         time.sleep(1)
-        if self.debug_mode:
-            return None
 
         response = self.get_first_response_by_type("path")
+
+
+        if not response:
+            return None
 
         payload = response["payload"]
 
@@ -239,12 +243,12 @@ class Communication:
         time.sleep(1)
 
         response = self.get_first_response_by_type("pathSelect")
-        if response:
-            return Direction(response["payload"]["startDirection"])
+        if not response:
+            return None
 
-        return None
+        return Direction(response["payload"]["startDirection"])
 
-    def send_target_reached(self, text: str) -> None:
+    def send_target_reached(self, text: str) -> bool:
         message = {
             "from": "client",
             "type": "targetReached",
@@ -258,7 +262,12 @@ class Communication:
 
         response = self.get_first_response_by_type("done")
 
-    def send_exploration_completed(self, text: str) -> None:
+        if not response:
+            return False
+
+        return True
+
+    def send_exploration_completed(self, text: str) -> bool:
         message = {
             "from": "client",
             "type": "explorationCompleted",
@@ -271,6 +280,11 @@ class Communication:
         time.sleep(1)
 
         response = self.get_first_response_by_type("done")
+
+        if not response:
+            return False
+
+        return True
 
     ###########################
     # Receive from mothership #
@@ -295,6 +309,7 @@ class Communication:
     def receive_target(self) -> Optional[Point]:
 
         target = self.get_first_response_by_type("target")
+
         if not target:
             return None
 

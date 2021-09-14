@@ -1,84 +1,66 @@
-from typing import Tuple
+from copy import deepcopy
+from typing import Tuple, Optional, List
 
-from planet import Point, Direction, Position, Planet
-
-
-class DiscoveryComplete(Exception):
-    pass
-
-
+from planet import Point, Direction, Planet
 
 
 class SmartDiscovery:
-    def __init__(self, position: Position, planet: Planet):
-        self.position = position
+    def __init__(self, planet: Planet):
         self.planet = planet
+        self.undiscovered_paths: dict[Point, List[Direction]] = {}
 
-        self.undiscovered_paths: list[Position] = []
+    def add_possible_directions(self, point: Point, directions: list[Direction]) -> None:
+        my_point = deepcopy(point)
+        my_directions = deepcopy(directions)
+        print(f"add_possible_directions({my_point}, {my_directions})")
+        self.undiscovered_paths[my_point] = my_directions
 
-    def add_possible_directions(self, directions: list[Direction]) -> None:
-        for i in range(len(directions)):
-            self.undiscovered_paths.append(Position(self.position.point, directions[i]))
+    def next_direction(self, point: Point) -> Optional[Direction]:
+        my_point = deepcopy(point)
+        print(f"next_direction({my_point}")
+        print(self.undiscovered_paths)
+        # undiscovered path at current point
+        if my_point in self.undiscovered_paths:
+            if self.undiscovered_paths[my_point]:
+                direction = self.undiscovered_paths[my_point][0]
+                self.undiscovered_paths[my_point].remove(direction)
+                return direction
 
-    def find_undiscovered_path(self, point: Point) -> list[Direction]:
-        this_point = (point.x, point.y)
-        directions = self.planet.get_undiscovered_paths()[this_point]
-        return directions
+        # everything discovered at current point -> path to nearest undiscovered point
+        possible_next_ways: List[Tuple[int, Direction]] = []
+        for point_with_undiscovered_paths in self.undiscovered_paths.items():
+            if not point_with_undiscovered_paths[1]:
+                continue  # skip points, where all paths are discovered
+            path = self.planet.shortest_path_points(my_point, point_with_undiscovered_paths[0])
+            if path is None:
+                continue
+            print("Path", path)
+            length = self.planet.length_of_path(path)
+            print("Length", length)
+            possible_next_ways.append((length, path[0].direction))
 
-    def get_next_direction(self) -> list[Position]:
+        if not possible_next_ways:
+            return None
 
-        this_point = (self.position.point.x, self.position.point.y)
-        result = []
-        found = 0
+        # sort all paths
+        possible_next_ways.sort(key=lambda my_path: my_path[0])
 
-        '''
-        for i in self.undiscovered_paths:
-            if i.point == self.position.point:
-                at_point.append(i.direction)
-                
-        '''
+        return possible_next_ways[0][1]
 
-        un_discovered = self.find_undiscovered_path(self.position.point)
+    def remove_direction(self, point: Point, direction: Direction) -> None:
+        my_point = deepcopy(point)
+        my_direction = deepcopy(direction)
+        print(f"remove_direction({my_point}, {my_direction})")
+        if my_point not in self.undiscovered_paths:
+            # print("Cant remove direction of non existing point")
+            return
 
+        if my_direction not in self.undiscovered_paths[my_point]:
+            # print("Already not an undiscovered path")
+            return
 
-        if un_discovered == []:
-            paths_list = []
-            for node in list(self.planet.get_paths().keys()):
-                directions = self.find_undiscovered_path(Point(node[0], node[1]))
-                if not(directions == []):
-                    paths_list.append((node, directions))
+        self.undiscovered_paths[my_point].remove(my_direction)
+        return
 
-            shortest_paths = []
-            for elem in paths_list:
-                shortest_paths.append(self.planet.shortest_path(this_point, elem[0]))
-
-            shortest_paths_lengths = []
-            for i in shortest_paths:
-                shortest_paths_lengths.append(len(i))
-
-            min_length = min(shortest_paths_lengths)
-
-            for i in shortest_paths:
-                if min_length == len(i):
-                    result = shortest_paths[i]
-                    found = 1
-                    break
-
-        else:
-            result = [Position(self.position.point, un_discovered[0])]
-            found = 1
-
-        if(found == 0):
-            #raise DiscoveryComplete("Complete")
-            result = []
-
-        return result
-
-
-
-
-
-
-
-
-
+    def was_on_point(self, point: Point) -> bool:
+        return deepcopy(point) in self.undiscovered_paths
