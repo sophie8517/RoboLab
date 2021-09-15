@@ -3,7 +3,7 @@ import traceback
 from copy import deepcopy
 from dataclasses import dataclass
 import socket
-from typing import List
+from typing import List, Optional
 
 from ev3dev import ev3
 
@@ -44,20 +44,21 @@ class Movement:
         self.smart_discovery = SmartDiscovery(self.planet)
 
         self.position = Position(Point(-11, -11), Direction.NORTH)
+        self.target: Optional[Point] = None
 
     def turn(self, angle: int) -> None:
         # print(f"Tun {angle} degrees...")
         turn_left = angle < 0
         # 19 sec -> 360 degree
         if turn_left:
-            self.motor_right.speed_sp = 50
-            self.motor_left.speed_sp = -50
+            self.motor_right.speed_sp = 200
+            self.motor_left.speed_sp = -200
         else:  # turn right
-            self.motor_right.speed_sp = -50
-            self.motor_left.speed_sp = 50
+            self.motor_right.speed_sp = -200
+            self.motor_left.speed_sp = 200
         self.motor_right.command = "run-forever"
         self.motor_left.command = "run-forever"
-        time.sleep((19 / 360) * abs(angle))
+        time.sleep((4.76698 / 360) * abs(angle))
         self.motor_right.stop()
         self.motor_left.stop()
         # print("Turned")
@@ -112,22 +113,22 @@ class Movement:
     def turn_and_scan(self) -> bool:
         # print("Turn and scan...")
         angle = 85
-        total_sleep = (19 / 360) * angle
+        total_sleep = (4.76698 / 360) * angle
         has_path = False
 
-        self.motor_right.speed_sp = -50
-        self.motor_left.speed_sp = 50
+        self.motor_right.speed_sp = -200
+        self.motor_left.speed_sp = 200
         self.motor_right.command = "run-forever"
         self.motor_left.command = "run-forever"
 
-        for i in range(100):
-            time.sleep(total_sleep / 100)
+        for i in range(25):
+            time.sleep(total_sleep / 25)
             if abs(self.sensors.get_color().brightness() - self.sensors.black.brightness()) < 50:
                 has_path = True
 
         self.motor_right.stop()
         self.motor_left.stop()
-        time.sleep(0.5)
+        time.sleep(0.2)
         # print(f"Turned and scanned. has_path: {has_path}")
         return has_path
 
@@ -148,7 +149,7 @@ class Movement:
         if self.turn_and_scan():
             result_list.append(Direction.WEST)
 
-        self.turn(45)
+        self.turn(40)
 
         # print(f"Scanned ways, result: {result_list}")
         return result_list
@@ -214,7 +215,11 @@ class Movement:
         if not possible_directions_absolute:
             raise Exception("No possible directions")
 
-        self.smart_discovery.add_possible_directions(self.position.point, possible_directions_absolute)
+        self.smart_discovery.add_scan_result(self.position.point, possible_directions_absolute)
+        better_direction = self.communication.send_path_select(
+            Position(self.position.point, possible_directions_absolute[0]))
+
+
 
         self.turn_to_way_absolute(possible_directions_absolute[0])
 
@@ -250,35 +255,80 @@ class Movement:
 
         self.planet.add_path_points(path_response.start_position, path_response.end_position,
                                     path_response.path_weight)
-        self.smart_discovery.remove_direction(path_response.start_position.point,
-                                              path_response.start_position.direction)
-        self.smart_discovery.remove_direction(path_response.end_position.point,
-                                              path_response.end_position.direction)
+        self.smart_discovery.mark_discovered(path_response.start_position.point,
+                                             path_response.start_position.direction)
+        self.smart_discovery.mark_discovered(path_response.end_position.point,
+                                             path_response.end_position.direction)
 
         self.move_forward(4)
+        #
+        # Traget reached??
+        #
+        if self.target and self.position.point == self.target:
+            response = self.communication.send_target_reached("Daaaa")
+            if response:
+                print(f"Response from mothership: {response}")
+                return True
 
-        if not self.smart_discovery.was_on_point(self.position.point):
+        #
+        # Path unveiled
+        #
+        unveiled_paths = self.communication.receive_path_unveiled()
+        if unveiled_paths:
+            print("Paths unveiled:")
+            print(unveiled_paths)
+            for unveiled_path in unveiled_paths:
+                self.planet.add_path_points(unveiled_path.start_position, unveiled_path.end_position,
+                                            unveiled_path.path_weight)
+                self.smart_discovery.add_discovered_path(unveiled_path.start_position, unveiled_path.end_position)
+
+        #
+        # Target receive
+        #
+        target_message = self.communication.receive_target()
+        if target_message:
+            print(f"Target from mothership: {target_message}")
+            self.target = target_message
+
+        if not self.smart_discovery.is_discovered_point(self.position.point):
             res_scan_ways_absolute = self.scan_ways_absolute()
             try:
                 res_scan_ways_absolute.remove(self.position.direction.turned())
             except:
                 print("Error???")
 
-            self.smart_discovery.add_possible_directions(self.position.point, res_scan_ways_absolute)
+            self.smart_discovery.add_scan_result(self.position.point, res_scan_ways_absolute)
 
-        selected_direction = self.smart_discovery.next_direction(self.position.point)
-        if selected_direction is None:
-            return True
+        if self.target:
+            target_path = self.planet.shortest_path_points(self.position.point, self.target)
+            if not target_path:
+                print("Target not reachable")
+                self.target = None
+            selected_direction = target_path[0].direction
+            print(f"Direction to target: {selected_direction}")
+        else:
+            selected_direction = self.smart_discovery.next_direction(self.position.point)
+            if selected_direction is None:
+                print("Complete, everything discovered")
+                response = self.communication.send_target_reached("Färdsch!")
+                if response:
+                    print(f"From mothership: {response}")
+                else:
+                    print("No response")
+                return True
 
         selected_position = Position(self.position.point, selected_direction)
-        send_path_select_response = self.communication.send_path_select(selected_position)
-        if send_path_select_response:
-            print(f"Better direction form mothership: {send_path_select_response}")
+        mothership_direction = self.communication.send_path_select(selected_position)
+        if mothership_direction:
+            print(f"Better direction form mothership: {mothership_direction}")
             # TODO check if path is blocked, mothership may send an impossible direction
-            self.turn_to_way_absolute(send_path_select_response)
-        else:
-            print(f'selected direction: {selected_direction}')
-            self.turn_to_way_absolute(selected_direction)
+            if not self.planet.is_blocked(Position(self.position.point, mothership_direction)):
+                selected_direction = mothership_direction
+            else:
+                print("Nö!")
+
+        print(f"Selected direction: {selected_direction}")
+        self.turn_to_way_absolute(selected_direction)
 
         return False
 
