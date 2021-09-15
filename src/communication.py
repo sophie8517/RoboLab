@@ -112,7 +112,7 @@ class Communication:
         self.logger.debug(json.dumps(message, indent=2))
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        self.client.publish(topic, json.dumps(message))
+        self.client.publish(topic, json.dumps(message), qos=1)
 
     # DO NOT EDIT THE METHOD SIGNATURE OR BODY
     #
