@@ -248,7 +248,7 @@ class Communication:
 
         return Direction(response["payload"]["startDirection"])
 
-    def send_target_reached(self, text: str) -> bool:
+    def send_target_reached(self, text: str) -> str:
         message = {
             "from": "client",
             "type": "targetReached",
@@ -263,11 +263,17 @@ class Communication:
         response = self.get_first_response_by_type("done")
 
         if not response:
-            return False
+            return ""
 
-        return True
+        if "payload" not in response:
+            return ""
 
-    def send_exploration_completed(self, text: str) -> bool:
+        if "message" not in response["payload"]:
+            return ""
+
+        return response["payload"]["message"]
+
+    def send_exploration_completed(self, text: str) -> str:
         message = {
             "from": "client",
             "type": "explorationCompleted",
@@ -282,9 +288,15 @@ class Communication:
         response = self.get_first_response_by_type("done")
 
         if not response:
-            return False
+            return ""
 
-        return True
+        if "payload" not in response:
+            return ""
+
+        if "message" not in response["payload"]:
+            return ""
+
+        return response["payload"]["message"]
 
     ###########################
     # Receive from mothership #
@@ -297,10 +309,10 @@ class Communication:
             payload = message["payload"]
             path = PathUnveiledResponse(Position(Point(payload["startX"],
                                                        payload["startY"]),
-                                                 payload["startDirection"]),
+                                                 Direction(payload["startDirection"])),
                                         Position(Point(payload["endX"],
                                                        payload["endY"]),
-                                                 payload["endDirection"]),
+                                                 Direction(payload["endDirection"])),
                                         payload["pathStatus"],
                                         payload["pathWeight"])
             paths_unveiled.append(path)

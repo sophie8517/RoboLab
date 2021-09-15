@@ -52,7 +52,7 @@ class Planet:
 
     def __init__(self):
         """ Initializes the data structure """
-        self.paths = {}
+        self.paths: Dict[Tuple[int, int], Dict[Direction, Tuple[Tuple[int, int], Direction, Weight]]] = {}
         self.name = ""
 
     def add_path(self, start: Tuple[Tuple[int, int], Direction], target: Tuple[Tuple[int, int], Direction],
@@ -256,3 +256,16 @@ class Planet:
             else:
                 length += self.paths[(position.point.x, position.point.y)][position.direction][2]
         return length
+
+    def is_blocked(self, position: Position):
+        point_tuple = (position.point.x, position.point.y)
+        if point_tuple not in self.paths:
+            return False
+
+        if position.direction not in self.paths[point_tuple]:
+            return False
+
+        if self.paths[point_tuple][position.direction][2] != -1:
+            return False
+
+        return True
