@@ -77,7 +77,7 @@ class Movement:
         self.motor_left.stop()
         # print("Moved forward")
 
-    def follow_line(self, speed: int = 80) -> FollowLineResult:
+    def follow_line(self, speed: int = 150) -> FollowLineResult:
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
@@ -86,7 +86,7 @@ class Movement:
         barrier_on_path = False
         while True:
             current_brightness = self.sensors.get_color().brightness()
-            turn = 0.5 * (current_brightness - self.sensors.black_white_diff)
+            turn = 0.8 * (current_brightness - self.sensors.black_white_diff)
             self.motor_right.speed_sp = speed - turn
             self.motor_left.speed_sp = speed + turn
             self.motor_right.command = "run-forever"
@@ -303,9 +303,19 @@ class Movement:
             target_path = self.planet.shortest_path_points(self.position.point, self.target)
             if not target_path:
                 print("Target not reachable")
-                self.target = None
-            selected_direction = target_path[0].direction
-            print(f"Direction to target: {selected_direction}")
+                # self.target = None
+                selected_direction = target_path[0].direction
+                print(f"Direction to target: {selected_direction}")
+            else:  # Bananaware 🍌🍌🍌🍌🍌🍌
+                selected_direction = self.smart_discovery.next_direction(self.position.point)
+                if selected_direction is None:
+                    print("Complete, everything discovered")
+                    response = self.communication.send_target_reached("Färdsch!")
+                    if response:
+                        print(f"From mothership: {response}")
+                    else:
+                        print("No response")
+                    return True
         else:
             selected_direction = self.smart_discovery.next_direction(self.position.point)
             if selected_direction is None:
@@ -319,13 +329,10 @@ class Movement:
 
         selected_position = Position(self.position.point, selected_direction)
         mothership_direction = self.communication.send_path_select(selected_position)
-        if mothership_direction:
+        print(f"{mothership_direction}")
+        if mothership_direction is not None:
             print(f"Better direction form mothership: {mothership_direction}")
-            # TODO check if path is blocked, mothership may send an impossible direction
-            if not self.planet.is_blocked(Position(self.position.point, mothership_direction)):
-                selected_direction = mothership_direction
-            else:
-                print("Nö!")
+            selected_direction = mothership_direction
 
         print(f"Selected direction: {selected_direction}")
         self.turn_to_way_absolute(selected_direction)

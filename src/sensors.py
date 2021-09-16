@@ -53,9 +53,9 @@ class Sensors:
         diff_red = self.get_color().diff(self.red)
         diff_blue = self.get_color().diff(self.blue)
 
-        if diff_red < 50:
+        if diff_red < 30:
             return SquareColor.RED
-        if diff_blue < 50:
+        if diff_blue < 30:
             return SquareColor.BLUE
         return SquareColor.NOT_ON_SQUARE
 

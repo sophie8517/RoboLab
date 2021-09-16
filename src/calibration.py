@@ -69,11 +69,18 @@ class Calibration:
             red, blue = self.calibrate_red_blue()
             black, white = self.calibrate_black_white()
         else:
-            red = Color(r=165, g=68, b=26)
-            blue = Color(r=33, g=160, b=137)
+            # red = Color(r=165, g=68, b=26)
+            # blue = Color(r=33, g=160, b=137)
 
-            white = Color(r=295, g=468, b=287)
-            black = Color(r=28, g=68, b=22)
+            # white = Color(r=295, g=468, b=287)
+            # black = Color(r=28, g=68, b=22)
+
+            # sensor höher
+
+            red = Color(r=177, g=64, b=27)
+            blue = Color(r=46, g=154, b=153)
+            black = Color(r=31, g=64, b=25)
+            white = Color(r=328, g=487, b=301)
 
         self.sensors.black = black
         self.sensors.white = white

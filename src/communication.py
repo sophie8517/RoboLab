@@ -8,7 +8,7 @@ import queue
 import ssl
 import time
 import uuid
-from copy import copy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from typing import Any, Optional, List
 
@@ -112,7 +112,7 @@ class Communication:
         self.logger.debug(json.dumps(message, indent=2))
 
         # YOUR CODE FOLLOWS (remove pass, please!)
-        self.client.publish(topic, json.dumps(message))
+        self.client.publish(topic, json.dumps(message), qos=1)
 
     # DO NOT EDIT THE METHOD SIGNATURE OR BODY
     #
@@ -142,24 +142,23 @@ class Communication:
         return f"planet/{self.planet}/{self.group}"
 
     def get_first_response_by_type(self, message_type: str) -> dict:
-        for message in self.message_list:
+        print(f"get_first_by_type({message_type})")
+        print(f"{self.message_list=}")
+        for message in deepcopy(self.message_list):
             if message["type"] != message_type:
                 continue
-            my_message = copy(message)
+            my_message = deepcopy(message)
             self.message_list.remove(my_message)
+            print(f"Got message {my_message}")
             return my_message
         # print("No message found")
         return {}
 
     def get_all_responses_by_type(self, message_type: str) -> list[dict]:
-        my_messages = []
-        for message in self.message_list:
-            if message["type"] != message_type:
-                continue
-            my_messages.append(copy(message))
-            self.message_list.remove(message)
-
-        return my_messages
+        response = list(filter(lambda msg: "type" in msg and msg["type"] == message_type, self.message_list))
+        self.message_list = list(
+            filter(lambda msg: "type" not in msg or msg["type"] != message_type, self.message_list))
+        return response
 
     ######################
     # Send to mothership #
@@ -212,7 +211,6 @@ class Communication:
 
         response = self.get_first_response_by_type("path")
 
-
         if not response:
             return None
 
@@ -243,6 +241,7 @@ class Communication:
         time.sleep(1)
 
         response = self.get_first_response_by_type("pathSelect")
+        print(f"{response=}")
         if not response:
             return None
 
@@ -337,4 +336,14 @@ if __name__ == '__main__':
                          )
 
     c = Communication(client, logger)
+    c.planet = "Reis"
+    c.client.subscribe(f"planet/{c.planet}/229")
     print(c.send_ready())
+    time.sleep(1)
+    print(c.send_path_select(Position(Point(69, 69), Direction.SOUTH)))
+    time.sleep(1)
+    print(c.send_path(Position(Point(69, 69), Direction.SOUTH), Position(Point(69, 68), Direction.NORTH), False))
+    time.sleep(1)
+    uuu = c.receive_path_unveiled()
+    print(uuu)
+    print(len(uuu))

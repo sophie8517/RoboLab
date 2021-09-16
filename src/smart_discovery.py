@@ -58,8 +58,8 @@ class SmartDiscovery:
 
     def next_direction(self, point: Point) -> Optional[Direction]:
         my_point = deepcopy(point)
-        print(f"next_direction({my_point}")
-        print(self.paths)
+        # print(f"next_direction({my_point}")
+        # print(self.paths)
 
         if my_point not in self.paths:
             return None
@@ -77,9 +77,9 @@ class SmartDiscovery:
             path = self.planet.shortest_path_points(my_point, undiscovered_point)
             if path is None or path == []:
                 continue
-            print("Path", path)
+            # print("Path", path)
             length = self.planet.length_of_path(path)
-            print("Length", length)
+            # print("Length", length)
             possible_next_ways.append((length, path[0].direction))
 
         if not possible_next_ways:
@@ -93,7 +93,7 @@ class SmartDiscovery:
     def mark_discovered(self, point: Point, direction: Direction) -> None:
         my_point = deepcopy(point)
         my_direction = deepcopy(direction)
-        print(f"remove_direction({my_point}, {my_direction})")
+        # print(f"remove_direction({my_point}, {my_direction})")
         if my_point not in self.paths:
             return
 
@@ -109,6 +109,9 @@ class SmartDiscovery:
     def get_all_points_with_undiscovered_paths(self) -> Set[Point]:
         points: Set[Point] = set()
         for point in self.paths:
+            if point not in self.discovered_points:
+                if len(self.paths[point]) != 4:
+                    points.add(deepcopy(point))
             for direction in self.paths[point]:
                 if self.paths[point][direction]:  # is true -> direction discovered
                     continue

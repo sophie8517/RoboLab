@@ -11,10 +11,10 @@ class TestRoboLabSmartDiscovery(unittest.TestCase):
 
     def test_simple_next_direction(self):
         my_point = Point(1, 1)
-        self.smart_discovery.add_possible_directions(my_point, [Direction.NORTH, Direction.WEST])
+        self.smart_discovery.add_scan_result(my_point, [Direction.NORTH, Direction.WEST])
         self.assertEqual(self.smart_discovery.next_direction(my_point), Direction.NORTH)
 
-        self.smart_discovery.remove_direction(my_point, Direction.NORTH)
+        self.smart_discovery.mark_discovered(my_point, Direction.NORTH)
 
         self.assertEqual(self.smart_discovery.next_direction(my_point), Direction.WEST)
 
@@ -26,11 +26,11 @@ class TestRoboLabSmartDiscovery(unittest.TestCase):
 
         self.planet.add_path_points(Position(start_point, Direction.WEST), Position(end_point, Direction.EAST), 12)
 
-        self.smart_discovery.add_possible_directions(end_point, [Direction.NORTH])
+        self.smart_discovery.add_scan_result(end_point, [Direction.NORTH])
 
         self.assertEqual(self.smart_discovery.next_direction(start_point), Direction.WEST)
 
-        self.smart_discovery.remove_direction(end_point, Direction.NORTH)
+        self.smart_discovery.mark_discovered(end_point, Direction.NORTH)
 
         self.assertIsNone(self.smart_discovery.next_direction(start_point))
 
@@ -44,6 +44,6 @@ class TestRoboLabSmartDiscovery(unittest.TestCase):
         self.planet.add_path_points(Position(start_point, Direction.WEST), Position(middle_point, Direction.EAST), 1)
         self.planet.add_path_points(Position(middle_point, Direction.WEST), Position(end_point, Direction.EAST), 3)
 
-        self.smart_discovery.add_possible_directions(end_point, [Direction.NORTH])
+        self.smart_discovery.add_scan_result(end_point, [Direction.NORTH])
 
         self.assertEqual(self.smart_discovery.next_direction(start_point), Direction.WEST)
