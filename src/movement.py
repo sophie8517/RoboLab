@@ -163,8 +163,8 @@ class Movement:
         #speed 55, Kp 250, Kd 130
         # 230 70 2 bei speed 60 -> funktioniert gut mit setzen von speed_l und speed_r
         # 260 120 0 bei speed 55
-        
-        
+
+
         Kp = p
         Kd = d_v
         Ki = i
@@ -179,20 +179,19 @@ class Movement:
         barrier_on_path = False
         while True:
             speed_l = 60
-            speed_l = 60
+            speed_r = 60
             current_brightness = self.sensors.get_color().brightness()
             error = current_brightness - bwd
             d = error - prev_error
             intgr += error
             turn = (Kp * error + Kd * d + Ki * intgr) * 0.001
+
             if turn > 40:
                 turn = 40
                 speed_r = 50
             if turn < -40:
                 turn = -40
                 speed_l = 50
-
-
 
 
             self.motor_right.duty_cycle_sp = speed_r - turn
@@ -225,9 +224,6 @@ class Movement:
                                           barrier_on_path)
                 # print(f"{result}")
                 return result
-
-    
-    
 
 
     def turn_and_scan(self) -> bool:
