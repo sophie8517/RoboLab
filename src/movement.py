@@ -308,8 +308,9 @@ class Movement:
         while r == 'y':
             x = int(input("Kp: "))
             y = int(input("Kd: "))
-            print(f'Kp = {x}, Kd = {y}')
-            self.follow_line4(x,y)
+            z = int(input("Ki: "))
+            print(f'Kp = {x}, Kd = {y}, Ki = {z}')
+            self.follow_line4(x,y,z)
             r = input("nochmal[y/n]?: ")
 
 
