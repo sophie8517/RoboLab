@@ -135,6 +135,64 @@ class Movement:
                 return result
 
 
+        def follow_line2(self, speed: int = 80) -> FollowLineResult:
+        self.motor_right.position = 0
+        self.motor_left.position = 0
+        motor_ticks = []
+        turns = []
+
+
+        proportional_value = 300  #55  60  70
+        derivative_value = 80    #18  16  16
+        speed = 200  #120  140  160
+
+        last_error = 0
+        d = 0
+
+        black_white = self.sensors.black_white_diff
+
+        # print("Following line...")
+        barrier_on_path = False
+        while True:
+
+            current_brightness = self.sensors.get_color().brightness()
+            error = current_brightness - black_white
+            d = error - last_error
+            turn = (proportional_value * error + d * derivative_value) * 0.0005
+            print("turn:", turn)
+            print("turn * 1000:", turn * 1000)
+            if turn > 60:
+                turn = 60
+            if turn < - 60:
+                turn = -60
+
+            self.motor_right.duty_cycle_sp = 40 - turn
+            self.motor_left.duty_cycle_sp = 40 + turn
+
+            self.motor_right.command = "run-direct"
+            self.motor_left.command = "run-direct"
+
+
+            #motor_ticks.append((self.motor_left.position, self.motor_right.position))
+            '''
+            if self.sensors.has_barrier():
+                # TODO better turning, might not find path if barrier in curve
+                barrier_on_path = True
+                self.sound.beep()
+                self.turn(170)
+
+            if self.sensors.get_square_color() != SquareColor.NOT_ON_SQUARE:
+                self.motor_right.stop()
+                self.motor_left.stop()
+                break
+                odometry_result = self.odometry.calc(motor_ticks)
+                result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
+                                          barrier_on_path)
+                print(f"{result}")
+                return result
+            '''
+
+
     def turn_and_scan(self) -> bool:
         print("Turn and scan...")
         angle = 85
@@ -213,40 +271,8 @@ class Movement:
         #c = self.sensors.test()
         #print(c)
         self.calibration.calibrate_colors()
-        self.follow_line()
+        self.follow_line2(80)
 
-        #self.follow_line(speed=80)
-        #self.move_forward(4)
-
-        values = []
-        y = 'n'
-        while y == 'y':
-            #self.follow_line(speed=80)
-            #self.move_forward(4)
-            #v = self.test()
-            #values.append(v)
-            x = int(input("grad: "))
-            self.turn(x)
-            y = input("nochmal?: ")
-        print(values)
-
-
-
-
-        x = 'n'
-        while x == 'y':
-            self.follow_line(speed=80)
-            self.move_forward(4)
-            g = int(input("grad: "))
-            d = Direction(g)
-            self.turn_to_way_relative(d)
-            x = input("nochmal[y/n]?: ")
-            
-
-        self.follow_line(speed=80)
-        self.move_forward(4)
-        self.scan_ways()
-        self.follow_line(speed=80)
 
         '''
         
