@@ -98,18 +98,25 @@ class Movement:
         self.motor_left.stop()
         # print("Moved forward")
 
-    def follow_line(self, speed: int = 80) -> FollowLineResult:
+    def follow_line(self, speed) -> FollowLineResult:
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
-        turns = []
+        speed = 180 #180  200
+
+        bwd = self.sensors.black_white_diff
+
+        Kp = 100 # 110  120
+        Kd = 10  #8  8
+        prev_error = 0
 
         # print("Following line...")
         barrier_on_path = False
         while True:
             current_brightness = self.sensors.get_color().brightness()
-            turn = 0.5 * (current_brightness - self.sensors.black_white_diff)
-            turns.append(turn)
+            error = current_brightness - bwd
+            d = error - prev_error
+            turn = (Kp * error + Kd * d) * 0.01
 
             self.motor_right.speed_sp = speed - turn
             self.motor_left.speed_sp = speed + turn
@@ -131,8 +138,9 @@ class Movement:
                 odometry_result = self.odometry.calc(motor_ticks)
                 result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
                                           barrier_on_path)
-                print(f"{result}")
+                # print(f"{result}")
                 return result
+
 
 
     def follow_line2(self, speed: int = 80) -> FollowLineResult:
@@ -314,8 +322,7 @@ class Movement:
         #c = self.sensors.test()
         #print(c)
         self.calibration.calibrate_colors()
-        #self.follow_line2(80)
-        self.follow_line3()
+        self.follow_line(180)
 
 
         '''
