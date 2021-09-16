@@ -135,7 +135,7 @@ class Movement:
                 return result
 
 
-        def follow_line2(self, speed: int = 80) -> FollowLineResult:
+    def follow_line2(self, speed: int = 80) -> FollowLineResult:
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
@@ -191,6 +191,49 @@ class Movement:
                 print(f"{result}")
                 return result
             '''
+
+    def follow_line3(self):
+        self.motor_right.position = 0
+        self.motor_left.position = 0
+        motor_ticks = []
+
+        bwd = self.sensors.black_white_diff
+        speed = 40
+
+        barrier_on_path = False
+        while True:
+
+            current_brightness = self.sensors.get_color().brightness()
+            # turn = 0.323 * (current_brightness - bwd)
+            turn = 0.5 * (current_brightness - bwd)
+            if turn > 60:
+                turn = 60
+            elif turn < -60:
+                turn = -60
+            self.motor_right.duty_cycle_sp = speed - turn
+            self.motor_left.duty_cycle_sp = speed + turn
+            self.motor_right.command = "run-direct"
+            self.motor_left.command = "run-direct"
+
+            motor_ticks.append((self.motor_left.position, self.motor_right.position))
+
+            if self.sensors.has_barrier():
+                # TODO better turning, might not find path if barrier in curve
+                barrier_on_path = True
+                self.sound.beep()
+                self.turn(170)
+
+            if self.sensors.get_square_color() != SquareColor.NOT_ON_SQUARE:
+                self.motor_right.stop()
+                self.motor_left.stop()
+
+                odometry_result = self.odometry.calc(motor_ticks)
+                result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
+                                          barrier_on_path)
+                print(f"{result}")
+                return result
+
+
 
 
     def turn_and_scan(self) -> bool:
@@ -271,7 +314,8 @@ class Movement:
         #c = self.sensors.test()
         #print(c)
         self.calibration.calibrate_colors()
-        self.follow_line2(80)
+        #self.follow_line2(80)
+        self.follow_line3()
 
 
         '''
