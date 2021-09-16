@@ -178,6 +178,8 @@ class Movement:
         # print("Following line...")
         barrier_on_path = False
         while True:
+            speed_l = 60
+            speed_l = 60
             current_brightness = self.sensors.get_color().brightness()
             error = current_brightness - bwd
             d = error - prev_error
