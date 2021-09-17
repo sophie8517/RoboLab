@@ -87,7 +87,7 @@ class Movement:
         # noch nicht: speed 280, Kp 140, Kd 10
         # verbessern: speed 280, Kp 140, Kd 20
         bwd = self.sensors.black_white_diff
-        speed = 60
+        speed = 55
         # speed 40, Kp 210, Kd 80
         # speed 40, Kp 240, Kd 80
         # speed 55, Kp 300, Kd 150
@@ -100,8 +100,8 @@ class Movement:
         # 290 70 2 bei speed 60 mit prev error berechnung
         # 310 60 2 bei speed 60 mit prev error berechnung, besser als vorher
         # 308 55 2 noch besser
-        Kp = 308
-        Kd = 55
+        Kp = 250
+        Kd = 80
         Ki = 2
         prev_error = 0
         intgr = 0
@@ -113,8 +113,8 @@ class Movement:
         # print("Following line...")
         barrier_on_path = False
         while True:
-            speed_l = 60
-            speed_r = 60
+            speed_l = 55
+            speed_r = 55
             current_brightness = self.sensors.get_color().brightness()
             error = current_brightness - bwd
             d = error - prev_error
@@ -122,11 +122,11 @@ class Movement:
             turn = (Kp * error + Kd * d + Ki * intgr) * 0.001
             prev_error = error
 
-            if turn > 40:
-                turn = 40
+            if turn > 45:
+                turn = 45
                 speed_r = 50
-            if turn < -40:
-                turn = -40
+            if turn < -45:
+                turn = -45
                 speed_l = 50
 
             self.motor_right.duty_cycle_sp = speed_r - turn
