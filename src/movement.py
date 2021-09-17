@@ -79,20 +79,60 @@ class Movement:
         self.motor_left.stop()
         # print("Moved forward")
 
-    def follow_line(self, speed: int = 150) -> FollowLineResult:
+    def follow_line(self) -> FollowLineResult:
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
+        # testen: 280, 120, 30
+        # noch nicht: speed 280, Kp 140, Kd 10
+        # verbessern: speed 280, Kp 140, Kd 20
+        bwd = self.sensors.black_white_diff
+        speed = 60
+        # speed 40, Kp 210, Kd 80
+        # speed 40, Kp 240, Kd 80
+        # speed 55, Kp 300, Kd 150
+        # speed 55, Kp 280, Kd 160
+        # speed 50, Kp 250, Kd 80, Ki 5
+        # speed 55, Kp 250, Kd 80, Ki 2
+        # speed 55, Kp 250, Kd 130
+        # 230 70 2 bei speed 60 -> funktioniert gut mit setzen von speed_l und speed_r
+        # 260 120 0 bei speed 55
+        # 290 70 2 bei speed 60 mit prev error berechnung
+        # 310 60 2 bei speed 60 mit prev error berechnung, besser als vorher
+        # 308 55 2 noch besser
+        Kp = 308
+        Kd = 55
+        Ki = 2
+        prev_error = 0
+        intgr = 0
+        speed_l = speed
+        speed_r = speed
+
+        black_brightness = self.sensors.black.brightness()
 
         # print("Following line...")
         barrier_on_path = False
         while True:
+            speed_l = 60
+            speed_r = 60
             current_brightness = self.sensors.get_color().brightness()
-            turn = 0.8 * (current_brightness - self.sensors.black_white_diff)
-            self.motor_right.speed_sp = speed - turn
-            self.motor_left.speed_sp = speed + turn
-            self.motor_right.command = "run-forever"
-            self.motor_left.command = "run-forever"
+            error = current_brightness - bwd
+            d = error - prev_error
+            intgr += error
+            turn = (Kp * error + Kd * d + Ki * intgr) * 0.001
+            prev_error = error
+
+            if turn > 40:
+                turn = 40
+                speed_r = 50
+            if turn < -40:
+                turn = -40
+                speed_l = 50
+
+            self.motor_right.duty_cycle_sp = speed_r - turn
+            self.motor_left.duty_cycle_sp = speed_l + turn
+            self.motor_right.command = "run-direct"
+            self.motor_left.command = "run-direct"
 
             motor_ticks.append((self.motor_left.position, self.motor_right.position))
 
@@ -101,14 +141,17 @@ class Movement:
                 barrier_on_path = True
                 self.sound.beep()
                 self.turn(170)
+                # the following part is for added Ki
+
+                while abs(self.sensors.get_color().brightness() - black_brightness) > 50:
+                    self.motor_right.speed_sp = -80
+                    self.motor_left.speed_sp = 80
+                    self.motor_right.command = "run-forever"
+                    self.motor_left.command = "run-forever"
 
             if self.sensors.get_square_color() != SquareColor.NOT_ON_SQUARE:
                 self.motor_right.stop()
                 self.motor_left.stop()
-
-                date_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-                with open(f"/home/robot/{date_time}.json", "w") as file:
-                    file.write(json.dumps(motor_ticks))
 
                 odometry_result = self.odometry.calc(motor_ticks)
                 result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
@@ -169,15 +212,19 @@ class Movement:
 
         return absolute_directions
 
-    def turn_to_way_relative(self, direction_relative: Direction) -> None:
-        # print(f"turn_to_way_relative({direction_relative})")
-        if direction_relative == Direction.NORTH:
-            return
+    def turn_to_way_relative(self, direction: Direction) -> None:
+        #self.position.direction = Direction((self.position.direction + direction) % 360)
 
-        self.position.direction = Direction((self.position.direction + direction_relative) % 360)
+        angle = int(direction)
 
-        angle = int(direction_relative)
-        self.turn(angle - 15)
+        if angle > 180:
+
+            angle = angle - 20
+            angle = -(360 - angle)
+        else:
+            angle = angle - 15
+
+        self.turn(angle)
 
         while abs(self.sensors.get_color().brightness() - self.sensors.black.brightness()) > 50:
             self.motor_right.speed_sp = -50
