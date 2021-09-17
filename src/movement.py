@@ -1,8 +1,10 @@
+import json
 import time
 import traceback
 from copy import deepcopy
 from dataclasses import dataclass
 import socket
+from datetime import datetime
 from typing import List, Optional
 
 from ev3dev import ev3
@@ -103,6 +105,10 @@ class Movement:
             if self.sensors.get_square_color() != SquareColor.NOT_ON_SQUARE:
                 self.motor_right.stop()
                 self.motor_left.stop()
+
+                date_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+                with open(f"/home/robot/{date_time}.json", "w") as file:
+                    file.write(json.dumps(motor_ticks))
 
                 odometry_result = self.odometry.calc(motor_ticks)
                 result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
@@ -219,9 +225,64 @@ class Movement:
         better_direction = self.communication.send_path_select(
             Position(self.position.point, possible_directions_absolute[0]))
 
+        if better_direction is not None:
+            self.turn_to_way_absolute(better_direction)
+        else:
+            self.turn_to_way_absolute(possible_directions_absolute[0])
 
+    def get_next_direction(self) -> Optional[Direction]:
+        if self.target is not None:
+            target_path = self.planet.shortest_path_points(self.position.point, self.target)
+            if target_path is None or target_path == []:
+                print("Target not reachable")
+                selected_direction = self.smart_discovery.next_direction(self.position.point)
+                if selected_direction is None:
+                    print("Complete, everything discovered")
+                    response = self.communication.send_exploration_completed("Färdsch!")
+                    if response is not None:
+                        print(f"From mothership: {response}")
+                    else:
+                        print("No response")
+                    return None
+            else:
+                selected_direction = target_path[0].direction
+                print(f"Direction to target: {selected_direction}")
+        else:  # no target
+            selected_direction = self.smart_discovery.next_direction(self.position.point)
+            if selected_direction is None:
+                print("Complete, everything discovered")
+                response = self.communication.send_target_reached("Färdsch!")
+                if response is not None:
+                    print(f"From mothership: {response}")
+                else:
+                    print("No response")
+                return None
 
-        self.turn_to_way_absolute(possible_directions_absolute[0])
+        selected_position = Position(self.position.point, selected_direction)
+        mothership_direction = self.communication.send_path_select(selected_position)
+        print(f"{mothership_direction}")
+        if mothership_direction is not None:
+            print(f"Better direction form mothership: {mothership_direction}")
+            selected_direction = mothership_direction
+
+        print(f"Selected direction: {selected_direction}")
+        return selected_direction
+
+    def got_path_unveiled(self) -> None:
+        unveiled_paths = self.communication.receive_path_unveiled()
+        if unveiled_paths is not None:
+            print("Paths unveiled:")
+            print(unveiled_paths)
+            for unveiled_path in unveiled_paths:
+                self.planet.add_path_points(unveiled_path.start_position, unveiled_path.end_position,
+                                            unveiled_path.path_weight)
+                self.smart_discovery.add_discovered_path(unveiled_path.start_position, unveiled_path.end_position)
+
+    def got_target(self) -> None:
+        target_message = self.communication.receive_target()
+        if target_message is not None:
+            print(f"Target from mothership: {target_message}")
+            self.target = target_message
 
     def main_loop(self) -> bool:
         follow_line_result = self.follow_line(speed=100)
@@ -264,31 +325,15 @@ class Movement:
         #
         # Traget reached??
         #
-        if self.target and self.position.point == self.target:
+        if self.target is not None and self.position.point == self.target:
             response = self.communication.send_target_reached("Daaaa")
+            self.target = None
             if response:
                 print(f"Response from mothership: {response}")
                 return True
 
-        #
-        # Path unveiled
-        #
-        unveiled_paths = self.communication.receive_path_unveiled()
-        if unveiled_paths:
-            print("Paths unveiled:")
-            print(unveiled_paths)
-            for unveiled_path in unveiled_paths:
-                self.planet.add_path_points(unveiled_path.start_position, unveiled_path.end_position,
-                                            unveiled_path.path_weight)
-                self.smart_discovery.add_discovered_path(unveiled_path.start_position, unveiled_path.end_position)
-
-        #
-        # Target receive
-        #
-        target_message = self.communication.receive_target()
-        if target_message:
-            print(f"Target from mothership: {target_message}")
-            self.target = target_message
+        self.got_path_unveiled()
+        self.got_target()
 
         if not self.smart_discovery.is_discovered_point(self.position.point):
             res_scan_ways_absolute = self.scan_ways_absolute()
@@ -299,43 +344,10 @@ class Movement:
 
             self.smart_discovery.add_scan_result(self.position.point, res_scan_ways_absolute)
 
-        if self.target:
-            target_path = self.planet.shortest_path_points(self.position.point, self.target)
-            if not target_path:
-                print("Target not reachable")
-                # self.target = None
-                selected_direction = target_path[0].direction
-                print(f"Direction to target: {selected_direction}")
-            else:  # Bananaware 🍌🍌🍌🍌🍌🍌
-                selected_direction = self.smart_discovery.next_direction(self.position.point)
-                if selected_direction is None:
-                    print("Complete, everything discovered")
-                    response = self.communication.send_target_reached("Färdsch!")
-                    if response:
-                        print(f"From mothership: {response}")
-                    else:
-                        print("No response")
-                    return True
-        else:
-            selected_direction = self.smart_discovery.next_direction(self.position.point)
-            if selected_direction is None:
-                print("Complete, everything discovered")
-                response = self.communication.send_target_reached("Färdsch!")
-                if response:
-                    print(f"From mothership: {response}")
-                else:
-                    print("No response")
-                return True
-
-        selected_position = Position(self.position.point, selected_direction)
-        mothership_direction = self.communication.send_path_select(selected_position)
-        print(f"{mothership_direction}")
-        if mothership_direction is not None:
-            print(f"Better direction form mothership: {mothership_direction}")
-            selected_direction = mothership_direction
-
-        print(f"Selected direction: {selected_direction}")
-        self.turn_to_way_absolute(selected_direction)
+        next_direction = self.get_next_direction()
+        if next_direction is None:
+            return True
+        self.turn_to_way_absolute(next_direction)
 
         return False
 

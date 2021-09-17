@@ -142,14 +142,11 @@ class Communication:
         return f"planet/{self.planet}/{self.group}"
 
     def get_first_response_by_type(self, message_type: str) -> dict:
-        print(f"get_first_by_type({message_type})")
-        print(f"{self.message_list=}")
         for message in deepcopy(self.message_list):
             if message["type"] != message_type:
                 continue
             my_message = deepcopy(message)
             self.message_list.remove(my_message)
-            print(f"Got message {my_message}")
             return my_message
         # print("No message found")
         return {}
@@ -241,7 +238,6 @@ class Communication:
         time.sleep(1)
 
         response = self.get_first_response_by_type("pathSelect")
-        print(f"{response=}")
         if not response:
             return None
 
@@ -305,26 +301,36 @@ class Communication:
         path_unveiled_messages = self.get_all_responses_by_type("pathUnveiled")
         paths_unveiled = []
         for message in path_unveiled_messages:
-            payload = message["payload"]
-            path = PathUnveiledResponse(Position(Point(payload["startX"],
-                                                       payload["startY"]),
-                                                 Direction(payload["startDirection"])),
-                                        Position(Point(payload["endX"],
-                                                       payload["endY"]),
-                                                 Direction(payload["endDirection"])),
-                                        payload["pathStatus"],
-                                        payload["pathWeight"])
+            try:
+                payload = message["payload"]
+                path = PathUnveiledResponse(Position(Point(payload["startX"],
+                                                           payload["startY"]),
+                                                     Direction(payload["startDirection"])),
+                                            Position(Point(payload["endX"],
+                                                           payload["endY"]),
+                                                     Direction(payload["endDirection"])),
+                                            payload["pathStatus"],
+                                            payload["pathWeight"])
+            except KeyError:
+                print("Invalid mothership message")
+                continue
             paths_unveiled.append(path)
         return paths_unveiled
 
     def receive_target(self) -> Optional[Point]:
 
-        target = self.get_first_response_by_type("target")
+        target_message = self.get_first_response_by_type("target")
 
-        if not target:
+        if not target_message:
             return None
 
-        return Point(target["payload"]["targetX"], target["payload"]["targetY"])
+        if "payload" not in target_message:
+            return None
+
+        if "targetX" not in target_message["payload"] or "targetY" not in target_message["payload"]:
+            return None
+
+        return Point(target_message["payload"]["targetX"], target_message["payload"]["targetY"])
 
 
 if __name__ == '__main__':
