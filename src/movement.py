@@ -104,51 +104,8 @@ class Movement:
         self.motor_left.stop()
         # print("Moved forward")
 
-    def follow_line(self, speed, p_v, d_v) -> FollowLineResult:
-        self.motor_right.position = 0
-        self.motor_left.position = 0
-        motor_ticks = []
-        #testen: 280, 120, 30
-        #noch nicht: speed 280, Kp 140, Kd 10
-        #verbessern: speed 280, Kp 140, Kd 20
-        bwd = self.sensors.black_white_diff
-        speed = 280  #180  200  180  200  240  280
-        Kp = p_v     #110  120  100  100  120  160
-        Kd = d_v     #  8    8   10   10   10   5
-        prev_error = 0
 
-        # print("Following line...")
-        barrier_on_path = False
-        while True:
-            current_brightness = self.sensors.get_color().brightness()
-            error = current_brightness - bwd
-            d = error - prev_error
-            turn = (Kp * error + Kd * d) * 0.01
-
-            self.motor_right.speed_sp = speed - turn
-            self.motor_left.speed_sp = speed + turn
-            self.motor_right.command = "run-forever"
-            self.motor_left.command = "run-forever"
-
-            motor_ticks.append((self.motor_left.position, self.motor_right.position))
-
-            if self.sensors.has_barrier():
-                # TODO better turning, might not find path if barrier in curve
-                barrier_on_path = True
-                self.sound.beep()
-                self.turn(170)
-
-            if self.sensors.get_square_color() != SquareColor.NOT_ON_SQUARE:
-                self.motor_right.stop()
-                self.motor_left.stop()
-
-                odometry_result = self.odometry.calc(motor_ticks)
-                result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
-                                          barrier_on_path)
-                # print(f"{result}")
-                return result
-
-    def follow_line4(self, p, d_v, i) -> FollowLineResult:
+    def follow_line(self) -> FollowLineResult:
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
@@ -168,9 +125,10 @@ class Movement:
         # 260 120 0 bei speed 55
         # 290 70 2 bei speed 60 mit prev error berechnung
         #310 60 2 bei speed 60 mit prev error berechnung, besser als vorher
-        Kp = p
-        Kd = d_v
-        Ki = i
+        #308 55 2 noch besser
+        Kp = 308
+        Kd = 55
+        Ki = 2
         prev_error = 0
         intgr = 0
         speed_l = speed
