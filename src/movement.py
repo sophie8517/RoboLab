@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from ev3dev import ev3
+from ev3dev.core import Sound
 
 from calibration import Calibration
 from communication import Communication
@@ -87,7 +88,7 @@ class Movement:
         # noch nicht: speed 280, Kp 140, Kd 10
         # verbessern: speed 280, Kp 140, Kd 20
         bwd = self.sensors.black_white_diff
-        speed = 60
+        speed = 55
         # speed 40, Kp 210, Kd 80
         # speed 40, Kp 240, Kd 80
         # speed 55, Kp 300, Kd 150
@@ -100,8 +101,8 @@ class Movement:
         # 290 70 2 bei speed 60 mit prev error berechnung
         # 310 60 2 bei speed 60 mit prev error berechnung, besser als vorher
         # 308 55 2 noch besser
-        Kp = 308
-        Kd = 55
+        Kp = 250
+        Kd = 80
         Ki = 2
         prev_error = 0
         intgr = 0
@@ -113,8 +114,8 @@ class Movement:
         # print("Following line...")
         barrier_on_path = False
         while True:
-            speed_l = 60
-            speed_r = 60
+            speed_l = 55
+            speed_r = 55
             current_brightness = self.sensors.get_color().brightness()
             error = current_brightness - bwd
             d = error - prev_error
@@ -122,11 +123,11 @@ class Movement:
             turn = (Kp * error + Kd * d + Ki * intgr) * 0.001
             prev_error = error
 
-            if turn > 40:
-                turn = 40
+            if turn > 45:
+                turn = 45
                 speed_r = 50
-            if turn < -40:
-                turn = -40
+            if turn < -45:
+                turn = -45
                 speed_l = 50
 
             self.motor_right.duty_cycle_sp = speed_r - turn
@@ -152,6 +153,10 @@ class Movement:
             if self.sensors.get_square_color() != SquareColor.NOT_ON_SQUARE:
                 self.motor_right.stop()
                 self.motor_left.stop()
+
+                # filename = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+                # with open(f"/home/robot/{filename}.json", "w") as file:
+                #     file.write(json.dumps(motor_ticks))
 
                 odometry_result = self.odometry.calc(motor_ticks)
                 result = FollowLineResult(odometry_result.dx, odometry_result.dy, odometry_result.direction,
@@ -213,7 +218,7 @@ class Movement:
         return absolute_directions
 
     def turn_to_way_relative(self, direction: Direction) -> None:
-        #self.position.direction = Direction((self.position.direction + direction) % 360)
+        self.position.direction = Direction((self.position.direction + direction) % 360)
 
         angle = int(direction)
 
@@ -246,7 +251,7 @@ class Movement:
         self.calibration.calibrate_colors()
 
         self.follow_line()
-        self.move_forward(4)
+        self.move_forward(1, speed=200)
 
         ready_response = self.communication.send_ready()
 
@@ -307,7 +312,6 @@ class Movement:
 
         selected_position = Position(self.position.point, selected_direction)
         mothership_direction = self.communication.send_path_select(selected_position)
-        print(f"{mothership_direction}")
         if mothership_direction is not None:
             print(f"Better direction form mothership: {mothership_direction}")
             selected_direction = mothership_direction
@@ -318,8 +322,6 @@ class Movement:
     def got_path_unveiled(self) -> None:
         unveiled_paths = self.communication.receive_path_unveiled()
         if unveiled_paths is not None:
-            print("Paths unveiled:")
-            print(unveiled_paths)
             for unveiled_path in unveiled_paths:
                 self.planet.add_path_points(unveiled_path.start_position, unveiled_path.end_position,
                                             unveiled_path.path_weight)
@@ -332,7 +334,7 @@ class Movement:
             self.target = target_message
 
     def main_loop(self) -> bool:
-        follow_line_result = self.follow_line(speed=100)
+        follow_line_result = self.follow_line()
 
         old_position = deepcopy(self.position)
         if self.position.direction == Direction.NORTH:
@@ -368,19 +370,24 @@ class Movement:
         self.smart_discovery.mark_discovered(path_response.end_position.point,
                                              path_response.end_position.direction)
 
-        self.move_forward(4)
+        self.move_forward(1, 200)
         #
         # Traget reached??
         #
         if self.target is not None and self.position.point == self.target:
+            Sound.set_volume(100)
+            Sound.play('/home/robot/smb_stage_clear.wav').wait()
             response = self.communication.send_target_reached("Daaaa")
             self.target = None
             if response:
                 print(f"Response from mothership: {response}")
                 return True
 
+
         self.got_path_unveiled()
         self.got_target()
+
+        Sound.tone(1000, 100).wait()
 
         if not self.smart_discovery.is_discovered_point(self.position.point):
             res_scan_ways_absolute = self.scan_ways_absolute()
