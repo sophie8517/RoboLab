@@ -68,12 +68,20 @@ class Calibration:
         if calibrate_response.lower().startswith("y"):
             red, blue = self.calibrate_red_blue()
             black, white = self.calibrate_black_white()
+            input("Press enter to continue")
         else:
-            red = Color(r=177, g=64, b=27)
-            blue = Color(r=46, g=154, b=153)
+            # red = Color(r=177, g=64, b=27)
+            # blue = Color(r=46, g=154, b=153)
+            #
+            # black = Color(r=31, g=64, b=25)
+            # white = Color(r=328, g=487, b=301)
 
-            black = Color(r=31, g=64, b=25)
-            white = Color(r=328, g=487, b=301)
+            # Foyer
+            red = Color(r=171, g=69, b=27)
+            blue = Color(r=52, g=191, b=153)
+
+            black = Color(r=33, g=63, b=28)
+            white = Color(r=323, g=481, b=299)
 
 
         self.sensors.black = black
