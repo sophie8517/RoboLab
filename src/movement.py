@@ -107,11 +107,11 @@ class Movement:
             prev_error = error
 
             if turn > 50:
-                turn = 50
+                turn = 45
                 speed_r = 40
                 speed_l = 45
             if turn < -50:
-                turn = -50
+                turn = -45
                 speed_l = 40
                 speed_r = 45
 
@@ -366,7 +366,7 @@ class Movement:
         self.got_target()
 
         if not self.smart_discovery.is_discovered_point(self.position.point):
-            Sound.play('/home/robot/smb_coin.wav.wav').wait()
+            Sound.play('/home/robot/smb_coin.wav').wait()
             res_scan_ways_absolute = self.scan_ways()
             try:
                 res_scan_ways_absolute.remove(self.position.direction.turned())
