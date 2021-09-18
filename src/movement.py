@@ -87,7 +87,7 @@ class Movement:
 
         k_p = 252
         k_d = 85
-        k_i = 4
+        k_i = 3
         prev_error = 0
         intgr = 0
         speed_l = speed
@@ -99,7 +99,8 @@ class Movement:
         while True:
             speed_l = 50
             speed_r = 50
-            current_brightness = self.sensors.get_color().brightness()
+            current_color = self.sensors.get_color()
+            current_brightness = current_color.brightness()
             error = current_brightness - bwd
             d = error - prev_error
             intgr += error
@@ -108,12 +109,12 @@ class Movement:
 
             if turn > 50:
                 turn = 45
-                speed_r = 40
-                speed_l = 45
+                speed_r = 30
+                speed_l = 35
             if turn < -50:
                 turn = -45
-                speed_l = 40
-                speed_r = 45
+                speed_l = 30
+                speed_r = 35
 
             self.motor_right.duty_cycle_sp = speed_r - turn
             self.motor_left.duty_cycle_sp = speed_l + turn
@@ -121,6 +122,13 @@ class Movement:
             self.motor_left.command = "run-direct"
 
             motor_ticks.append((self.motor_left.position, self.motor_right.position))
+
+            if current_color.diff(self.sensors.white) < 15:
+                while abs(self.sensors.get_color().brightness() - black_brightness) > 50:
+                    self.motor_right.speed_sp = -50
+                    self.motor_left.speed_sp = 50
+                    self.motor_right.command = "run-forever"
+                    self.motor_left.command = "run-forever"
 
             if self.sensors.has_barrier():
                 # TODO better turning, might not find path if barrier in curve
