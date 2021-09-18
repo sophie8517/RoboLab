@@ -80,26 +80,14 @@ class Movement:
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
-        # testen: 280, 120, 30
-        # noch nicht: speed 280, Kp 140, Kd 10
-        # verbessern: speed 280, Kp 140, Kd 20
+
+
         bwd = self.sensors.black_white_diff
-        speed = 55
-        # speed 40, Kp 210, Kd 80
-        # speed 40, Kp 240, Kd 80
-        # speed 55, Kp 300, Kd 150
-        # speed 55, Kp 280, Kd 160
-        # speed 50, Kp 250, Kd 80, Ki 5
-        # speed 55, Kp 250, Kd 80, Ki 2
-        # speed 55, Kp 250, Kd 130
-        # 230 70 2 bei speed 60 -> funktioniert gut mit setzen von speed_l und speed_r
-        # 260 120 0 bei speed 55
-        # 290 70 2 bei speed 60 mit prev error berechnung
-        # 310 60 2 bei speed 60 mit prev error berechnung, besser als vorher
-        # 308 55 2 noch besser
-        Kp = 250
-        Kd = 80
-        Ki = 2
+        speed = 50
+
+        k_p = 252
+        k_d = 85
+        k_i = 4
         prev_error = 0
         intgr = 0
         speed_l = speed
@@ -109,21 +97,23 @@ class Movement:
 
         barrier_on_path = False
         while True:
-            speed_l = 55
-            speed_r = 55
+            speed_l = 50
+            speed_r = 50
             current_brightness = self.sensors.get_color().brightness()
             error = current_brightness - bwd
             d = error - prev_error
             intgr += error
-            turn = (Kp * error + Kd * d + Ki * intgr) * 0.001
+            turn = (k_p * error + k_d * d + k_i * intgr) * 0.001
             prev_error = error
 
-            if turn > 45:
-                turn = 45
-                speed_r = 50
-            if turn < -45:
-                turn = -45
-                speed_l = 50
+            if turn > 50:
+                turn = 50
+                speed_r = 40
+                speed_l = 45
+            if turn < -50:
+                turn = -50
+                speed_l = 40
+                speed_r = 45
 
             self.motor_right.duty_cycle_sp = speed_r - turn
             self.motor_left.duty_cycle_sp = speed_l + turn
@@ -137,7 +127,6 @@ class Movement:
                 barrier_on_path = True
                 self.sound.beep()
                 self.turn(45)
-                # the following part is for added Ki
 
                 while abs(self.sensors.get_color().brightness() - black_brightness) > 50:
                     self.motor_right.speed_sp = -80
