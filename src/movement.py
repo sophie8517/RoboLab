@@ -28,6 +28,7 @@ class FollowLineResult:
 
 
 class Movement:
+    """Responsible class for moving the robot and the main logic"""
     def __init__(self, communication: Communication):
         self.communication = communication
 
@@ -50,6 +51,8 @@ class Movement:
         self.target: Optional[Point] = None
 
     def turn(self, angle: int) -> None:
+        """Turns right an specified angle with the speed_sp of 200.
+        A negative value will turn left."""
         # print(f"Tun {angle} degrees...")
         turn_left = angle < 0
         # 19 sec -> 360 degree
@@ -67,7 +70,7 @@ class Movement:
         # print("Turned")
 
     def move_forward(self, time_seconds: int, speed: int = 50) -> None:
-        # print(f"Move forward: time_sec:{time_sec}, speed={speed}...")
+        """Moved the robot forward with specified time and speed."""
         self.motor_right.speed_sp = speed
         self.motor_left.speed_sp = speed
 
@@ -78,9 +81,9 @@ class Movement:
 
         self.motor_right.stop()
         self.motor_left.stop()
-        # print("Moved forward")
 
     def follow_line(self) -> FollowLineResult:
+        """Follows a line and returning the result of the odometry and if there was a barrier."""
         self.motor_right.position = 0
         self.motor_left.position = 0
         motor_ticks = []
@@ -165,6 +168,7 @@ class Movement:
                 return result
 
     def turn_and_scan(self) -> bool:
+        """Turns ca. 90 degrees and return true if there was a line."""
         # print("Turn and scan...")
         angle = 85
         total_sleep = (4.76698 / 360) * angle
@@ -187,6 +191,7 @@ class Movement:
         return has_path
 
     def scan_ways_relative(self) -> List[Direction]:
+        """Scans all paths on a point. This returns relative directions."""
         # print("Scanning ways...")
         self.turn(-45)
         result_list: List[Direction] = []
@@ -209,6 +214,7 @@ class Movement:
         return result_list
 
     def scan_ways_absolute(self) -> List[Direction]:
+        """Calls scan_ways_absolute and calculates absolute directions."""
         relative_directions = self.scan_ways_relative()
         absolute_directions: List[Direction] = []
 
@@ -218,6 +224,7 @@ class Movement:
         return absolute_directions
 
     def turn_to_way_relative(self, direction: Direction) -> None:
+        """Turns to a relative direction."""
         self.position.direction = Direction((self.position.direction + direction) % 360)
 
         angle = int(direction)
@@ -242,12 +249,15 @@ class Movement:
         time.sleep(0.5)
 
     def turn_to_way_absolute(self, direction_absolute: Direction) -> None:
-        # print(f"turn_to_way_abolute({direction_absolute})")
+        """Turns to an absolute direction."""
+        # print(f"turn_to_way_absolute({direction_absolute})")
         # print(f"Cur direction: {self.position.direction}")
         direction_relative = Direction((direction_absolute - self.position.direction) % 360)
         self.turn_to_way_relative(direction_relative)
 
     def initial_start(self) -> None:
+        """Should by called once to drive to first point.
+        Sends ready message and scans first point."""
         self.calibration.calibrate_colors()
 
         self.follow_line()
@@ -283,6 +293,9 @@ class Movement:
             self.turn_to_way_absolute(possible_directions_absolute[0])
 
     def get_next_direction(self) -> Optional[Direction]:
+        """Calculate next direction. If there is a reachable target return direction to target.
+        If no reachable target, return direction to closest undiscovered path.
+        Returns None, if everything is discovered."""
         if self.target is not None:
             target_path = self.planet.shortest_path_points(self.position.point, self.target)
             if target_path is None or target_path == []:
@@ -290,6 +303,8 @@ class Movement:
                 selected_direction = self.smart_discovery.next_direction(self.position.point)
                 if selected_direction is None:
                     print("Complete, everything discovered")
+                    Sound.set_volume(100)
+                    Sound.play('/home/robot/smb_stage_clear.wav').wait()
                     response = self.communication.send_exploration_completed("Färdsch!")
                     if response is not None:
                         print(f"From mothership: {response}")
@@ -303,6 +318,8 @@ class Movement:
             selected_direction = self.smart_discovery.next_direction(self.position.point)
             if selected_direction is None:
                 print("Complete, everything discovered")
+                Sound.set_volume(100)
+                Sound.play('/home/robot/smb_stage_clear.wav').wait()
                 response = self.communication.send_target_reached("Färdsch!")
                 if response is not None:
                     print(f"From mothership: {response}")
@@ -320,6 +337,8 @@ class Movement:
         return selected_direction
 
     def got_path_unveiled(self) -> None:
+        """Checks if we got path unveiled messages.
+        If we got some, save them in planet and smart discovery."""
         unveiled_paths = self.communication.receive_path_unveiled()
         if unveiled_paths is not None:
             for unveiled_path in unveiled_paths:
@@ -328,12 +347,17 @@ class Movement:
                 self.smart_discovery.add_discovered_path(unveiled_path.start_position, unveiled_path.end_position)
 
     def got_target(self) -> None:
+        """Checks if we got a target message.
+        If we got one, set this as new target."""
         target_message = self.communication.receive_target()
         if target_message is not None:
             print(f"Target from mothership: {target_message}")
             self.target = target_message
 
-    def main_loop(self) -> bool:
+    def do_follow_line_update_position(self) -> None:
+        """Follows a line and updated position based on odometry result.
+        Sends this position to mothership and checks for mothership correction.
+        Add the (corrected) path to planet and smart_discovery."""
         follow_line_result = self.follow_line()
 
         old_position = deepcopy(self.position)
@@ -370,6 +394,11 @@ class Movement:
         self.smart_discovery.mark_discovered(path_response.end_position.point,
                                              path_response.end_position.direction)
 
+    def main_loop(self) -> bool:
+        """Follow line, scan paths, communicate, move to next direction.
+        Returns True, if done."""
+        self.do_follow_line_update_position()
+
         self.move_forward(1, 200)
         #
         # Traget reached??
@@ -383,11 +412,8 @@ class Movement:
                 print(f"Response from mothership: {response}")
                 return True
 
-
         self.got_path_unveiled()
         self.got_target()
-
-        Sound.tone(1000, 100).wait()
 
         if not self.smart_discovery.is_discovered_point(self.position.point):
             res_scan_ways_absolute = self.scan_ways_absolute()
@@ -403,9 +429,16 @@ class Movement:
             return True
         self.turn_to_way_absolute(next_direction)
 
+        time.sleep(3)
+        Sound.tone(1000, 100).wait()
+
+        self.got_path_unveiled()
+        self.got_target()
+
         return False
 
     def main(self) -> None:
+        """Entry point into movement."""
         while True:
             try:
                 self.initial_start()
