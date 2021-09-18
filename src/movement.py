@@ -10,7 +10,7 @@ from calibration import Calibration
 from communication import Communication
 from odometry import Odometry
 from planet import Direction, Position, Planet, Point
-from sensors import Sensors, SquareColor
+from sensors import Sensors, SquareColor, Color
 from smart_discovery import SmartDiscovery
 
 
@@ -76,6 +76,37 @@ class Movement:
         self.motor_right.stop()
         self.motor_left.stop()
 
+    def lost_mode(self, current_color: Color, black_brightness: int) -> None:
+        """Find the track, if lost"""
+        if current_color.diff(self.sensors.white) >= 15:
+            return
+
+        start_time = time.time()
+        while abs(self.sensors.get_color().brightness() - black_brightness) > 50 and (
+                time.time() - start_time) < 3:
+            self.motor_right.speed_sp = -50  # turn right
+            self.motor_left.speed_sp = 50
+            self.motor_right.command = "run-forever"
+            self.motor_left.command = "run-forever"
+
+        # we are now at the track
+        if abs(self.sensors.get_color().brightness() - black_brightness) <= 50:
+            return
+
+        while abs(self.sensors.get_color().brightness() - black_brightness) > 50:
+            self.motor_right.speed_sp = 50  # turn left
+            self.motor_left.speed_sp = -50
+            self.motor_right.command = "run-forever"
+            self.motor_left.command = "run-forever"
+
+        self.turn(-40)
+
+        while abs(self.sensors.get_color().brightness() - black_brightness) > 50:
+            self.motor_right.speed_sp = -50  # turn right
+            self.motor_left.speed_sp = 50
+            self.motor_right.command = "run-forever"
+            self.motor_left.command = "run-forever"
+
     def follow_line(self) -> FollowLineResult:
         """Follows a line and returning the result of the odometry and if there was a barrier."""
         self.motor_right.position = 0
@@ -123,12 +154,7 @@ class Movement:
 
             motor_ticks.append((self.motor_left.position, self.motor_right.position))
 
-            if current_color.diff(self.sensors.white) < 15:
-                while abs(self.sensors.get_color().brightness() - black_brightness) > 50:
-                    self.motor_right.speed_sp = -50
-                    self.motor_left.speed_sp = 50
-                    self.motor_right.command = "run-forever"
-                    self.motor_left.command = "run-forever"
+            self.lost_mode(current_color, black_brightness)
 
             if self.sensors.has_barrier():
                 # TODO better turning, might not find path if barrier in curve
