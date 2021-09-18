@@ -86,7 +86,6 @@ class Communication:
         # YOUR CODE FOLLOWS (remove pass, please!)
 
         if payload["from"] == "client":
-            # print("Skip, from client")
             return
 
         if not payload["type"]:
@@ -146,7 +145,6 @@ class Communication:
             my_message = deepcopy(message)
             self.message_list.remove(my_message)
             return my_message
-        # print("No message found")
         return {}
 
     def get_all_responses_by_type(self, message_type: str) -> list[dict]:
@@ -301,15 +299,18 @@ class Communication:
         for message in path_unveiled_messages:
             try:
                 payload = message["payload"]
-                path = PathUnveiledResponse(Position(Point(payload["startX"],
-                                                           payload["startY"]),
+                path = PathUnveiledResponse(Position(Point(int(payload["startX"]),
+                                                           int(payload["startY"])),
                                                      Direction(payload["startDirection"])),
-                                            Position(Point(payload["endX"],
-                                                           payload["endY"]),
+                                            Position(Point(int(payload["endX"]),
+                                                           int(payload["endY"])),
                                                      Direction(payload["endDirection"])),
                                             payload["pathStatus"],
-                                            payload["pathWeight"])
+                                            int(payload["pathWeight"]))
             except KeyError:
+                print("Invalid mothership message")
+                continue
+            except ValueError:
                 print("Invalid mothership message")
                 continue
             paths_unveiled.append(path)
@@ -320,12 +321,6 @@ class Communication:
         target_message = self.get_first_response_by_type("target")
 
         if not target_message:
-            return None
-
-        if "payload" not in target_message:
-            return None
-
-        if "targetX" not in target_message["payload"] or "targetY" not in target_message["payload"]:
             return None
 
         return Point(target_message["payload"]["targetX"], target_message["payload"]["targetY"])

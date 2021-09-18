@@ -77,16 +77,3 @@ class Odometry:
     def calc(self, motor_ticks: list[tuple[int, int]]) -> CalculateResult:
         my_precise_result = self.calculate_precise(motor_ticks)
         return self.calculate_grid(my_precise_result.dx_cm, my_precise_result.dy_cm, my_precise_result.angle_degree)
-
-
-if __name__ == '__main__':
-    o = Odometry()
-
-    with open('../odometrie_json/zwei_mal_45_cm_gerade.json', 'r') as reader:
-        ticks = json.load(reader)
-
-    precise_result = o.calculate_precise(ticks)
-    print(precise_result)
-
-    grid_result = o.calculate_grid(precise_result.dx_cm, precise_result.dy_cm, precise_result.angle_degree)
-    print(grid_result)

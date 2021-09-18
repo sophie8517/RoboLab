@@ -26,8 +26,8 @@ class Calibration:
         input("Set me on a red square and press enter")
         red = self.sensors.get_color()
 
-        print(f"red = {red}")
-        print(f"blue = {blue}")
+        print(f"{red=}")
+        print(f"{blue=}")
         return red, blue
 
     def calibrate_black_white(self) -> tuple[Color, Color]:
@@ -59,8 +59,8 @@ class Calibration:
         self.motor_right.stop()
         self.motor_left.stop()
 
-        print(f"black = {black}")
-        print(f"white = {white}")
+        print(f"{black=}")
+        print(f"{white=}")
         return black, white
 
     def calibrate_colors(self) -> None:

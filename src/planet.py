@@ -90,6 +90,7 @@ class Planet:
             self.paths.update({target_key: target_value})
 
     def add_path_points(self, start: Position, end: Position, weight: int):
+        """Adds a path with our own data structure."""
         start_tuple = ((start.point.x, start.point.y), start.direction)
         target_tuple = ((end.point.x, end.point.y), end.direction)
         self.add_path(start_tuple, target_tuple, weight)
@@ -232,6 +233,7 @@ class Planet:
 
     def shortest_path_points(self, start: Point, end: Point) -> Optional[List[Position]]:
         """
+        Shortest path with our own data structure.
         return None if there is no path
         return []   if there is start and end is the same???
         """
@@ -247,7 +249,7 @@ class Planet:
         return position_list
 
     def length_of_path(self, path: List[Position]) -> int:
-
+        """Returns the length of a path"""
         length = 0
         for position in path:
             if self.paths[(position.point.x, position.point.y)][position.direction][2] == -1:
@@ -257,6 +259,7 @@ class Planet:
         return length
 
     def is_blocked(self, position: Position):
+        """Checks if a path is blocked"""
         point_tuple = (position.point.x, position.point.y)
         if point_tuple not in self.paths:
             return False
