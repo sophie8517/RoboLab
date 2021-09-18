@@ -4,11 +4,9 @@
 import json
 import logging
 import platform
-import queue
 import ssl
 import time
-import uuid
-from copy import copy, deepcopy
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Optional, List
 
@@ -331,25 +329,3 @@ class Communication:
             return None
 
         return Point(target_message["payload"]["targetX"], target_message["payload"]["targetY"])
-
-
-if __name__ == '__main__':
-    logger = logging.getLogger('RoboLab')
-    client_id = '229-' + str(uuid.uuid4())  # Replace YOURGROUPID with your group ID
-    client = mqtt.Client(client_id=client_id,  # Unique Client-ID to recognize our program
-                         clean_session=True,  # We want a clean session after disconnect or abort/crash
-                         protocol=mqtt.MQTTv311  # Define MQTT protocol version
-                         )
-
-    c = Communication(client, logger)
-    c.planet = "Reis"
-    c.client.subscribe(f"planet/{c.planet}/229")
-    print(c.send_ready())
-    time.sleep(1)
-    print(c.send_path_select(Position(Point(69, 69), Direction.SOUTH)))
-    time.sleep(1)
-    print(c.send_path(Position(Point(69, 69), Direction.SOUTH), Position(Point(69, 68), Direction.NORTH), False))
-    time.sleep(1)
-    uuu = c.receive_path_unveiled()
-    print(uuu)
-    print(len(uuu))

@@ -134,7 +134,6 @@ class Planet:
         if not (start in self.paths.keys()) or not (target in self.paths.keys()):
             return None
 
-
         distance_dict = {}  # lists all nodes with their distance to start node
         predecessors = {}  # maps a list of predecessors to a node {this node :[start, ..., this node}
         unvisited = []
@@ -162,7 +161,7 @@ class Planet:
             minimum_distance = min(distances)
 
             if minimum_distance == infinity:
-                return None  # because this node is unreacheable
+                return None  # because this node is unreachable
             else:
                 for node in unvisited:
                     if distance_dict[node] == minimum_distance:
@@ -198,14 +197,14 @@ class Planet:
         for num in range(len(node_list)):
             if num == len(node_list) - 1:
                 last = node_list[len(node_list) - 1]  # node before target node
-                
+
                 direcs = []
                 for kye in list(self.paths[last].keys()):
                     if self.paths[last][kye][0] == target:
                         direction = kye
                         path_weight = self.paths[last][kye][2]
                         direcs.append((direction, path_weight))
-                        
+
                 mini = direcs[0][1]
                 last_elem = (last, direcs[0][0])
                 for i in direcs:
@@ -247,7 +246,7 @@ class Planet:
 
         return position_list
 
-    def length_of_path(self, path:List[Position]) -> int:
+    def length_of_path(self, path: List[Position]) -> int:
 
         length = 0
         for position in path:

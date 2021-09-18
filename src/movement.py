@@ -1,10 +1,6 @@
-import json
 import time
-import traceback
 from copy import deepcopy
 from dataclasses import dataclass
-import socket
-from datetime import datetime
 from typing import List, Optional
 
 from ev3dev import ev3
@@ -14,8 +10,7 @@ from calibration import Calibration
 from communication import Communication
 from odometry import Odometry
 from planet import Direction, Position, Planet, Point
-from sensors import Sensors, SquareColor, Color
-from server import DebugServer
+from sensors import Sensors, SquareColor
 from smart_discovery import SmartDiscovery
 
 
@@ -41,7 +36,6 @@ class Movement:
         self.sound = ev3.Sound()
 
         self.sensors = Sensors()
-        self.debug_server = DebugServer(self.motor_left, self.motor_right)
         self.calibration = Calibration(self.motor_left, self.motor_right, self.sensors)
         self.planet = Planet()
         self.odometry = Odometry()
@@ -439,19 +433,8 @@ class Movement:
 
     def main(self) -> None:
         """Entry point into movement."""
-        while True:
-            try:
-                self.initial_start()
-                done = False
-                while not done:
-                    done = self.main_loop()
-                print("---- DONE ----")
-                self.debug_server.start()
-
-            except KeyboardInterrupt:
-                print("---- KEYBOARD INTERRUPT ----")
-                self.debug_server.start()
-            except Exception as e:
-                print("---- ERROR ----")
-                traceback.print_exc()
-                self.debug_server.start()
+        self.initial_start()
+        done = False
+        while not done:
+            done = self.main_loop()
+        print("---- DONE ----")

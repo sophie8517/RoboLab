@@ -83,7 +83,6 @@ class Calibration:
             black = Color(r=33, g=63, b=28)
             white = Color(r=323, g=481, b=299)
 
-
         self.sensors.black = black
         self.sensors.white = white
         self.sensors.red = red
