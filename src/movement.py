@@ -229,16 +229,11 @@ class Movement:
         return absolute_directions
 
     def turn_to_way(self, direction_absolute: Direction) -> None:
-        print(f"{direction_absolute=}")
         """Turns to an absolute direction."""
 
         direction_relative = Direction((direction_absolute - self.position.direction) % 360)
 
         self.position.direction = direction_absolute
-
-        print(f"{self.position.direction=}")
-
-        print(f"{direction_relative=}")
 
         angle = int(direction_relative)
 
@@ -275,6 +270,7 @@ class Movement:
 
         self.follow_line()
         self.move_forward(1, speed=200)
+        Sound.play('/home/robot/smb_coin.wav').wait()
 
         ready_response = self.communication.send_ready()
 
@@ -365,6 +361,9 @@ class Movement:
         path_response = self.communication.send_path(old_position, self.position.turned(),
                                                      follow_line_result.path_blocked)
 
+        if path_response is None:
+            print("No message from mothership")
+
         if path_response.start_position != old_position or path_response.end_position != self.position.turned():
             print("Odometry was wrong -> got correction from mothership:")
             print("Start", path_response.start_position)
@@ -428,11 +427,7 @@ class Movement:
 
         self.turn_to_way(next_direction)
 
-        # time.sleep(3)
         Sound.tone(1000, 100).wait()
-
-        self.got_path_unveiled()
-        self.got_target()
 
         return False
 

@@ -231,7 +231,7 @@ class Communication:
         }
         self.send_message(self.planet_topic, message)
 
-        time.sleep(1)
+        time.sleep(3)
 
         response = self.get_first_response_by_type("pathSelect")
         if not response:
